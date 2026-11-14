@@ -15,6 +15,8 @@ const NOT_ALLOWED = 'SecurityError';
 const HELLO_NOTE_MS = 200;
 /** A measured step shorter than this part of a square is a bad measurement. */
 const SHORTEST_STEP = 0.2;
+/** …and one this long: then the eyes saw something else on the way, not the wall coming nearer. */
+const LONGEST_STEP = 2.5;
 /** When the robot finds its own full turn for the tuning, it looks for turns up to this many times the expected spins. */
 const WIDEST_TURN = 1.8;
 /** For the tuning the robot turns in spins this much shorter than the radar's: more looks in a turn tell better where it is. */
@@ -314,7 +316,7 @@ export class Connection {
     if (!this.#hub.connected) return report(T.connection.fitNeedsRobot);
     const squares = await measureStep(this.#hub, { signal });
     // If the mBot went away half-way, part of the measurement came from the robot on screen.
-    if (!this.#hub.connected || squares === null || squares < SHORTEST_STEP) return report(T.connection.fitFailed);
+    if (!this.#hub.connected || squares === null || squares < SHORTEST_STEP || squares > LONGEST_STEP) return report(T.connection.fitFailed);
     this.#fit('stepMs', this.#tuning.stepMs / squares);
     report(T.connection.fitDone(Math.round(squares * this.#tuning.cellCm), this.#tuning.stepMs));
   }

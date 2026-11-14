@@ -312,11 +312,14 @@ the browser, in about twenty seconds. They cover:
 
 `tests/robot/` runs the app's own classes against a real mBot: the firmware
 version, thirty questions in a row, every sensor, a colour change with a packet
-right behind it, how long the robot really holds a note, a tune with the lights
-changing, and a reset in the middle of a note. With "also the tests that move
-the robot" ticked, the robot finds its own full turn, makes four quarter turns
-and checks where it ended, and measures a step. Those tests stop the robot at
-once if the line sensors under its nose see nothing, as over an edge.
+right behind it, and a reset. Two boxes add more:
+
+- "also the tests that play notes": how long the robot really holds a note, and
+  a tune with the lights changing.
+- "also the tests that move the robot": the robot finds its own full turn, makes
+  four quarter turns and checks where it ended, and measures a step. These stop
+  the robot at once if the line sensors under its nose see nothing, as over an
+  edge.
 
 In Chrome or Edge, open <http://localhost:8765/tests/robot/> and press "Run with
 this browser's Bluetooth". Where the browser has no Web Bluetooth, a small
@@ -328,7 +331,8 @@ open -n "tools/build/mBot Bridge.app"
 ```
 
 macOS asks once whether "mBot Bridge" may use Bluetooth. Then open
-<http://localhost:8765/tests/robot/?run> (add `&move` for the moving tests). The
+<http://localhost:8765/tests/robot/?run> (add `&sound` and `&move` for the tests
+that play notes and that move the robot). The
 bridge listens on `127.0.0.1:8766` for pages served from this computer only, and
 `tests/robot/bridge.js` makes it look like Web Bluetooth to the app's
 `BluetoothLink`. Stop it with `pkill -x mbot-bridge`.

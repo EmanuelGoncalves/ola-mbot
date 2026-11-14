@@ -16,17 +16,19 @@
   <h1 id="summary">Tests on the real mBot</h1>
   <p>
     These run the app's own code against a real mBot. Switch the robot on, away from edges and with a
-    few things around it. The tests that move it only turn it on the spot and drive it one step and back.
+    few things around it. Without the two boxes ticked, the robot stays silent and where it is. The tests
+    that move it only turn it on the spot and drive it one step and back.
   </p>
   <p>
     <button id="bridge">Run through the bridge</button>
     <button id="bluetooth">Run with this browser's Bluetooth</button>
+    <label><input id="sound" type="checkbox"> also the tests that play notes</label>
     <label><input id="move" type="checkbox"> also the tests that move the robot</label>
   </p>
   <ul id="results"></ul>
   <script type="module">
     import { bridgeBluetooth } from './bridge.js';
-    import { moving, robotOn, Skip, still } from './robot.test.js';
+    import { moving, robotOn, Skip, sound, still } from './robot.test.js';
 
     const summary = document.getElementById('summary');
     const list = document.getElementById('results');
@@ -43,7 +45,8 @@
         return;
       }
       const counts = { pass: 0, fail: 0, skip: 0 };
-      const tests = document.getElementById('move').checked ? [...still, ...moving] : still;
+      const wanted = (id, tests) => (document.getElementById(id).checked ? tests : []);
+      const tests = [...still, ...wanted('sound', sound), ...wanted('move', moving)];
       for (const [name, test] of tests) {
         summary.textContent = `Running: ${name}…`;
         try {
@@ -62,9 +65,9 @@
 
     document.getElementById('bridge').addEventListener('click', () => run(bridgeBluetooth()));
     document.getElementById('bluetooth').addEventListener('click', () => run(navigator.bluetooth));
-    // ?run starts at once through the bridge, and ?run&move also moves the robot.
+    // ?run starts at once through the bridge; &sound and &move add the tests that play notes and that move the robot.
     const asked = new URLSearchParams(location.search);
-    document.getElementById('move').checked = asked.has('move');
+    for (const id of ['sound', 'move']) document.getElementById(id).checked = asked.has(id);
     if (asked.has('run')) run(bridgeBluetooth());
   </script>
 </body>
