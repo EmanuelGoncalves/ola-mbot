@@ -1,5 +1,5 @@
 import { sleep } from '../timing.js';
-import { distanceRequest, lightsPacket, ReplyParser, tonePacket, wheelsPacket } from './protocol.js';
+import { distanceRequest, lightsPacket, lineRequest, ReplyParser, tonePacket, wheelsPacket } from './protocol.js';
 
 const REPLY_TIMEOUT_MS = 400;
 /** Each question carries a number, so answers are not mixed up when two are waiting. */
@@ -108,13 +108,27 @@ export class MBot {
   }
 
   /** Distance seen by the ultrasonic sensor in cm, or null if the robot did not answer. */
-  async readDistance() {
+  readDistance() {
+    return this.#ask(distanceRequest);
+  }
+
+  /**
+   * What the two line sensors underneath see: 0 both over the black line, 1 only the left one,
+   * 2 only the right one, 3 neither. Null if the robot did not answer.
+   */
+  async readLine() {
+    const seen = await this.#ask(lineRequest);
+    return seen === null ? null : Math.round(seen);
+  }
+
+  /** Sends a question made by `request(index)` and waits for its answer, or null if none comes. */
+  async #ask(request) {
     const index = (this.#index = (this.#index % LAST_INDEX) + 1);
     const reply = new Promise((resolve) => this.#waiting.set(index, resolve));
-    await this.#send(distanceRequest(index));
-    const cm = await Promise.race([reply, sleep(REPLY_TIMEOUT_MS).then(() => null)]);
+    await this.#send(request(index));
+    const value = await Promise.race([reply, sleep(REPLY_TIMEOUT_MS).then(() => null)]);
     this.#waiting.delete(index);
-    return cm;
+    return value;
   }
 
   /**

@@ -34,6 +34,13 @@
   opacity: 0.45;
 }
 
+/* The black line of the circuit the robot follows */
+.stage-circuit {
+  fill: none;
+  stroke: var(--circuit);
+  stroke-width: 16;
+}
+
 /* A square with a word or a number, for the school exercises */
 .stage-sign {
   fill: var(--surface);

@@ -126,6 +126,22 @@ export const T = {
     eyesClear: 'Caminho livre!',
     eyesBlocked: 'Obstáculo à frente!',
     eyesDistance: (cm) => `Está a ${Math.round(cm)} cm.`,
+    line: 'Seguir a linha',
+    lineHint: 'O mBot trouxe um circuito de papel com uma linha preta. Põe o robô em cima da linha e carrega no botão: ele segue-a sozinho, com os dois sensores que tem por baixo. No ecrã, o robô segue um circuito redondo.',
+    lineStart: 'Seguir a linha',
+    lineStop: 'Parar',
+    /** By what the two sensors see: both on the line, only the left, only the right, neither. */
+    lineSeen: [
+      'Estou em cima da linha!',
+      'A linha foge para a esquerda. Vou atrás dela!',
+      'A linha foge para a direita. Vou atrás dela!',
+      'Perdi a linha… Estou à procura dela.',
+    ],
+    lineEnded: {
+      lost: 'Não encontro a linha. Põe-me outra vez em cima dela e carrega no botão.',
+      silent: 'O mBot não me diz o que vê por baixo. Vê se ele está ligado.',
+    },
+    lineStopped: 'Parei de seguir a linha.',
     map: 'Mapa da sala',
     mapHint: 'O robô dá uma volta inteira, devagarinho, e mede com os olhos o que está à volta dele. Onde vir coisas, põe caixas no tapete. Se alguma ficar no sítio errado, corrige-a no separador «Programar», tocando no tapete.',
     mapScan: 'Fazer o mapa',

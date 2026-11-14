@@ -1,5 +1,6 @@
 import { el } from '../dom.js';
 import { JINGLES, playJingle } from '../jingles.js';
+import { followLine, Line } from '../robot/line-follower.js';
 import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
 import { distinct, locate, measure, sameSight, sweep } from '../robot/radar.js';
@@ -18,6 +19,9 @@ const SPEEDS = [
 const TURN_FACTOR = 0.7;
 const PIANO_NOTE_MS = 300;
 const EYES_POLL_MS = 200;
+/** Following a line is steadier at less than the full driving speed, and never slower than the motors can turn. */
+const LINE_SPEED = 0.7;
+const SLOWEST_LINE_SPEED = 80;
 /** The two things to do in this tab: drive by hand, or let the robot explore by itself. */
 const MODES = [
   { id: 'drive', icon: '🕹️' },
@@ -33,7 +37,7 @@ const DIRECTIONS = [
 ];
 
 /**
- * The "Conduzir" tab: hold an arrow to drive, map the room, tap lights, piano keys and jingles.
+ * The "Conduzir" tab: hold an arrow to drive, follow a line, map the room, tap lights, piano keys and jingles.
  * Its "Explorar" part (see ExploreView) lets the robot look for the way out of the room.
  */
 export class DriveView {
@@ -61,6 +65,10 @@ export class DriveView {
   #scanButton = el('button', { class: 'button', type: 'button', onClick: () => this.#scanRoom() });
   #mapStatus = el('p', { class: 'hint map-status', 'aria-live': 'polite' });
   #scale = el('p', { class: 'hint' });
+  /** The line following in progress, if any. */
+  #line = null;
+  #lineButton = el('button', { class: 'button', type: 'button', 'aria-pressed': 'false', onClick: () => this.#toggleLine() });
+  #lineStatus = el('p', { class: 'hint map-status', 'aria-live': 'polite' });
   #explore;
   /** The panels of each mode, and the button that shows them. */
   #modes;
@@ -94,6 +102,14 @@ export class DriveView {
         el('div', { class: 'pad' }, DIRECTIONS.map((direction) => this.#arrow(direction)), el('div', { class: 'pad-centre' }, portrait.element)),
         this.#speedChooser(),
         el('div', { class: 'drive-group' }, el('h3', { text: T.drive.eyes }), el('div', { class: 'row' }, this.#eyesButton, this.#eyesStatus)),
+        el(
+          'div',
+          { class: 'drive-group' },
+          el('h3', { text: T.drive.line }),
+          el('p', { class: 'hint', text: T.drive.lineHint }),
+          el('div', { class: 'row' }, this.#lineButton),
+          this.#lineStatus,
+        ),
         el(
           'div',
           { class: 'drive-group' },
@@ -168,6 +184,7 @@ export class DriveView {
     });
     this.#setEyes(this.#eyesOn);
     this.#showScanning(false);
+    this.#showFollowing(false);
     this.showScale();
   }
 
@@ -175,6 +192,7 @@ export class DriveView {
   stop() {
     this.#held = [];
     this.#explore.stop();
+    this.#line?.abort();
     this.#scan?.abort();
     this.#playing?.abort.abort();
     this.#hub.stop();
@@ -187,6 +205,45 @@ export class DriveView {
       mode.button.setAttribute('aria-pressed', String(mode.id === id));
       for (const panel of mode.panels) panel.hidden = mode.id !== id;
     }
+  }
+
+  /**
+   * Follows the black line of the circuit that comes with the mBot, with the two sensors under
+   * the robot. On screen, a round circuit is drawn on the mat for the robot there to follow.
+   */
+  async #toggleLine() {
+    if (this.#line) {
+      this.#line.abort();
+      return;
+    }
+    this.stop();
+    await this.#scanDone.catch(() => {});
+    const line = new AbortController();
+    this.#line = line;
+    this.#showFollowing(true);
+    this.#simulator.showCircuit(true);
+    this.#lineStatus.textContent = T.drive.lineSeen[Line.BOTH];
+    try {
+      const ended = await followLine(this.#hub, {
+        speed: Math.max(SLOWEST_LINE_SPEED, this.#speed * LINE_SPEED),
+        signal: line.signal,
+        onSeen: (seen) => (this.#lineStatus.textContent = T.drive.lineSeen[seen]),
+      });
+      this.#lineStatus.textContent = T.drive.lineEnded[ended];
+    } catch (error) {
+      if (!isAbort(error)) throw error;
+      this.#lineStatus.textContent = T.drive.lineStopped;
+    } finally {
+      this.#line = null;
+      this.#showFollowing(false);
+      await this.#hub.stop();
+      this.#simulator.showCircuit(false);
+    }
+  }
+
+  #showFollowing(following) {
+    this.#lineButton.textContent = following ? `■ ${T.drive.lineStop}` : `〰️ ${T.drive.lineStart}`;
+    this.#lineButton.setAttribute('aria-pressed', String(following));
   }
 
   /** Says how big a square of the mat is on the floor. */
@@ -367,7 +424,7 @@ export class DriveView {
 
   /** Drives as the newest pressed arrow says; with the eyes on, not forwards into an obstacle. */
   #applyDrive() {
-    if (this.#scan) return; // the radar is turning the robot
+    if (this.#scan || this.#line) return; // the radar or the line is driving the robot
     const direction = this.#held.at(-1);
     const braking = this.#eyesOn && this.#blocked && direction?.id === 'forward';
     const [left, right] = direction && !braking ? direction.wheels : [0, 0];
@@ -388,7 +445,7 @@ export class DriveView {
     this.#eyesWatching = true;
     while (this.#eyesOn) {
       const showing = !document.hidden && !this.element.closest('[hidden]');
-      if (showing && !this.#scan && !this.#explore.exploring) this.#seen(await this.#hub.look());
+      if (showing && !this.#scan && !this.#line && !this.#explore.exploring) this.#seen(await this.#hub.look());
       await sleep(EYES_POLL_MS);
     }
     this.#eyesWatching = false;

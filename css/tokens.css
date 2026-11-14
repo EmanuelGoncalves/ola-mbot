@@ -22,6 +22,7 @@
   /* The robot's mat */
   --mat: #d6ecf6;
   --mat-line: #b3d6e8;
+  --circuit: #1d2b33;
   --box: #dba76b;
   --box-edge: #b07a3f;
   --trail: #f2853d;
@@ -84,6 +85,7 @@
     --coach-edge: #e0ac2b;
     --mat: #1c3d4f;
     --mat-line: #2c566b;
+    --circuit: #05090b;
     --box: #c08a52;
     --box-edge: #8c5e2c;
     --robot-led-off: #35566a;
@@ -112,6 +114,7 @@
   --coach-edge: #e0ac2b;
   --mat: #1c3d4f;
   --mat-line: #2c566b;
+  --circuit: #05090b;
   --box: #c08a52;
   --box-edge: #8c5e2c;
   --robot-led-off: #35566a;

@@ -10,8 +10,8 @@ export const WRITE_UUID = '0000ffe3-0000-1000-8000-00805f9b34fb';
 const HEADER = [0xff, 0x55];
 const LINE_END = [0x0d, 0x0a];
 const Action = { GET: 1, RUN: 2 };
-const Device = { ULTRASONIC: 1, JOYSTICK: 5, RGB_LED: 8, TONE: 34 };
-const Port = { ULTRASONIC: 3, RGB_LED: 7 };
+const Device = { ULTRASONIC: 1, JOYSTICK: 5, RGB_LED: 8, LINE_FOLLOWER: 17, TONE: 34 };
+const Port = { LINE_FOLLOWER: 2, ULTRASONIC: 3, RGB_LED: 7 };
 const RGB_SLOT = 2;
 const ALL_LEDS = 0;
 const MAX_SPEED = 255;
@@ -38,6 +38,14 @@ export function tonePacket(hz, ms) {
 /** Asks for the ultrasonic distance; the reply carries the same `index`. */
 export function distanceRequest(index) {
   return packet(index, Action.GET, Device.ULTRASONIC, Port.ULTRASONIC);
+}
+
+/**
+ * Asks what the two line sensors under the robot see. The reply is a number: 0 when both are
+ * over the black line, 1 when only the left one is, 2 when only the right one is, 3 when neither.
+ */
+export function lineRequest(index) {
+  return packet(index, Action.GET, Device.LINE_FOLLOWER, Port.LINE_FOLLOWER);
 }
 
 /** Collects notification bytes and returns the complete replies found so far. */

@@ -27,6 +27,7 @@ export class StageView {
   #boxes = svg('g');
   #sightings = svg('g');
   #star = svg('path', { class: 'stage-star', d: STAR_PATH });
+  #circuit = svg('circle', { class: 'stage-circuit' });
   #trail = svg('polyline', { class: 'stage-trail' });
   #popups = svg('g');
   #robot = createRobotFigure();
@@ -40,6 +41,7 @@ export class StageView {
       { class: 'stage', viewBox: `0 0 ${cols * CELL} ${rows * CELL}`, role: 'img', 'aria-label': label },
       svg('rect', { class: 'stage-mat', width: cols * CELL, height: rows * CELL, rx: 28 }),
       this.#gridLines(),
+      this.#circuit,
       this.#signs,
       this.#star,
       this.#boxes,
@@ -90,6 +92,11 @@ export class StageView {
         ),
       ),
     );
+    const { circuit } = this.#simulator;
+    this.#circuit.style.display = circuit ? '' : 'none';
+    if (circuit) {
+      for (const [name, value] of [['cx', centre(circuit.x)], ['cy', centre(circuit.y)], ['r', circuit.radius * CELL]]) this.#circuit.setAttribute(name, value);
+    }
     this.#star.style.display = goal ? '' : 'none';
     if (goal) this.#star.setAttribute('transform', `translate(${centre(goal.x)} ${centre(goal.y)})`);
   }

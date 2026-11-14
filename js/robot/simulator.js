@@ -12,6 +12,14 @@ const BUMP_DISTANCE = 0.18;
 const TRAIL_SPACING = 0.1;
 const TRAIL_LIMIT = 800;
 const RAY_STEP = 0.05;
+/** The circuit for following a line: a circle through the starting square, in squares. */
+const CIRCUIT = Object.freeze({ x: 2.5, y: 2.5, radius: Math.hypot(1.5, 1.5) });
+/** Half the width of its line, and where the two sensors sit under the robot. */
+const LINE_HALF_WIDTH = 0.08;
+const SENSORS_AHEAD = 0.3;
+const SENSORS_APART = 0.08;
+/** At the start, this heading runs along the circuit. */
+const CIRCUIT_HEADING = 315;
 
 /**
  * The robot on screen. It follows the same commands as the real mBot.
@@ -27,6 +35,8 @@ export class Simulator extends EventTarget {
   signs = [];
   /** What the radar saw: `[{ from, to }]`, both `{ x, y }` in squares. */
   sightings = [];
+  /** The circuit drawn on the mat, `{ x, y, radius }` in squares, or null. */
+  circuit = null;
   bumps = 0;
   stepsMoved = 0;
   notesPlayed = 0;
@@ -76,6 +86,15 @@ export class Simulator extends EventTarget {
     this.obstacles = new Set();
     for (const [x, y] of cells) this.#addBox(x, y);
     this.dispatchEvent(new Event('world'));
+  }
+
+  /** Draws the circuit on the mat, with the robot on its line and pointing along it; or takes it away. */
+  showCircuit(shown) {
+    this.circuit = shown ? CIRCUIT : null;
+    this.dispatchEvent(new Event('world'));
+    this.reset();
+    if (shown) this.pose.heading = CIRCUIT_HEADING;
+    this.#changed();
   }
 
   showSightings(sightings) {
@@ -167,6 +186,24 @@ export class Simulator extends EventTarget {
     return range;
   }
 
+  /**
+   * What the two line sensors under the robot see, as the real ones answer: 0 both over the
+   * line, 1 only the left one, 2 only the right one, 3 neither (also when there is no circuit).
+   */
+  lineSeen() {
+    if (!this.circuit) return 3;
+    const turn = (this.pose.heading * Math.PI) / 180;
+    const [aheadX, aheadY] = this.#forward(SENSORS_AHEAD);
+    const [rightX, rightY] = [Math.cos(turn), Math.sin(turn)];
+    /** True when the sensor on that side (−1 left, 1 right) is off the line. */
+    const off = (side) => {
+      const x = this.pose.x + aheadX + (side * rightX * SENSORS_APART) / 2;
+      const y = this.pose.y + aheadY + (side * rightY * SENSORS_APART) / 2;
+      return Math.abs(Math.hypot(x - this.circuit.x, y - this.circuit.y) - this.circuit.radius) > LINE_HALF_WIDTH;
+    };
+    return (off(-1) ? 2 : 0) + (off(1) ? 1 : 0);
+  }
+
   /** Free driving with wheel speeds, as in `MBot.drive`. */
   drive(left, right) {
     this.#wheels = { left, right };
@@ -217,14 +254,14 @@ export class Simulator extends EventTarget {
     while (this.#wheels.left !== 0 || this.#wheels.right !== 0) {
       await nextFrame();
       const now = performance.now();
-      this.#integrate(now - last);
+      this.advance(now - last);
       last = now;
     }
     this.#driving = false;
   }
 
-  /** Moves the robot by what its wheels did during `ms`. */
-  #integrate(ms) {
+  /** Moves the robot by what its wheels did during `ms`. The driving loop calls it at every frame. */
+  advance(ms) {
     const { speed, stepMs, quarterTurnMs } = this.#tuning;
     const { left, right } = this.#wheels;
     const steps = ((left + right) / 2 / speed) * (ms / stepMs);

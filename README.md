@@ -16,7 +16,7 @@ It has six tabs:
 | --- | --- |
 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
-| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, map the room with a 360° radar turn, switch the lights, play the buzzer like a piano, or tap one of twelve jingles. Its **Explorar** part lets the robot find the way out of the room by itself. |
+| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, follow the black line of the printed circuit, map the room with a 360° radar turn, switch the lights, play the buzzer like a piano, or tap one of twelve jingles. Its **Explorar** part lets the robot find the way out of the room by itself. |
 | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | **Comando** | The infrared remote that comes in the box, button by button. |
@@ -89,6 +89,17 @@ sees again what it saw at first, and says so when the turn was not a full one.
 It stays a coarse map: turns are timed, not measured, and the cone is about 30°
 wide.
 
+## Following the line
+
+"Conduzir → Seguir a linha" follows the black line of the paper circuit that
+comes in the box, with the two sensors under the robot
+(`js/robot/line-follower.js`). On the line it drives straight. With the line
+under one sensor only, the wheel on that side slows down. Off the line, it turns
+on the spot towards the side it last saw the line on, as the robot's own mode C
+does. Over Bluetooth each look takes some tens of milliseconds, so start with
+the slow speed. On screen, a round circuit is drawn on the mat for the robot
+there to follow.
+
 ## Finding the way out
 
 "Conduzir → Explorar" makes the robot look for a doorway, 80 cm to 1 m wide, and
@@ -144,7 +155,8 @@ yet, so a child who undoes something is simply walked through it again.
 The interpreter talks to one `RobotHub`, which forwards each command to the
 `Simulator` and to the `MBot`. Both implement the same commands: `move`, `turn`,
 `rotate`, `moveUntilObstacle`, `setLights`, `playTone`, `obstacleAhead`, `drive`,
-`stop`.
+`stop`. The hub also answers `look`, `range` and `readLine` from the real
+robot's sensors when one is connected, and from the one on screen otherwise.
 
 A school exercise is a mission with a subject: a question, a mat with signs
 (squares holding a number or a word), a `check` on what the robot did, and a
@@ -175,6 +187,7 @@ Packets follow the factory firmware's parser
 | Both LEDs | `ff 55 09 00 02 08 07 02 00 <r> <g> <b>` |
 | Buzzer | `ff 55 07 00 02 22 <hz int16> <ms int16>` |
 | Read distance | `ff 55 04 <index> 01 01 03` → `ff 55 <index> 02 <float32> 0d 0a` |
+| Read line sensors | `ff 55 04 <index> 01 11 02` → same reply; 0 both on the line, 1 left only, 2 right only, 3 neither |
 
 Bluetooth service `ffe1`; write to characteristic `ffe3`, notifications on `ffe2`.
 

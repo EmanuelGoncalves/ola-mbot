@@ -98,6 +98,15 @@ export class RobotHub {
     return cm > 0 && cm < OUT_OF_SIGHT_CM ? (cm + EYES_AHEAD_CM) / this.#tuning.cellCm : null;
   }
 
+  /**
+   * What the line sensors under the robot see (see `MBot.readLine`). The real robot's when one
+   * is connected, null if it does not answer; otherwise the robot on screen's.
+   */
+  async readLine() {
+    if (!this.#mbot) return this.#simulator.lineSeen();
+    return this.#mbot.readLine().catch(() => null);
+  }
+
   async obstacleAhead() {
     return (await this.look()).blocked;
   }
