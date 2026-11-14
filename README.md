@@ -8,7 +8,7 @@ It has five tabs:
 | --- | --- |
 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
-| **Conduzir** | Drive with arrows, switch the lights, play the buzzer like a piano. |
+| **Conduzir** | Drive with arrows, switch the lights, play the buzzer like a piano, or tap one of six jingles. |
 | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
 | **Comando** | The infrared remote that comes in the box, button by button. |
 
@@ -54,6 +54,7 @@ js/main.js            builds the page and switches tabs
 js/texts.js           interface text (PT-PT)
 js/tutorial.js        the tutorial's lessons, step by step
 js/missions.js        the missions and the star board
+js/jingles.js         short tunes for the buzzer, and their player
 js/remote-guide.js    what each remote button does
 js/program/           block catalogue, program model, interpreter
 js/robot/             protocol, Bluetooth link, real mBot, simulator, hub
@@ -73,7 +74,8 @@ The interpreter talks to one `RobotHub`, which forwards each command to the
 
 With the server running, open <http://localhost:8765/tests/>. The page runs the
 protocol, program, interpreter and simulator tests, plays a reference solution
-for every mission and checks that every lesson can be finished.
+for every mission, checks that every lesson can be finished and that the
+jingles use only the piano's notes.
 
 ## Protocol
 

@@ -1,6 +1,8 @@
 import { el } from '../dom.js';
+import { JINGLES, playJingle } from '../jingles.js';
 import { COLORS, NOTES } from '../robot/palette.js';
 import { T } from '../texts.js';
+import { isAbort } from '../timing.js';
 import { createRobotPortrait } from './robot-figure.js';
 import { StageView } from './stage-view.js';
 
@@ -20,12 +22,16 @@ const DIRECTIONS = [
   { id: 'backward', icon: '▼', wheels: [-1, -1], key: 'ArrowDown' },
 ];
 
-/** The "Conduzir" tab: hold an arrow to drive, tap lights and piano keys. */
+/** The "Conduzir" tab: hold an arrow to drive, tap lights, piano keys and jingles. */
 export class DriveView {
   #hub;
   #speed = SPEEDS[1].value;
   /** Arrows being pressed, newest last: the robot follows the newest. */
   #held = [];
+  /** The jingle being played and the controller that stops it, or null. */
+  #playing = null;
+  #pianoKeys = new Map();
+  #jingleButtons = new Map();
 
   constructor({ hub, simulator }) {
     this.#hub = hub;
@@ -76,10 +82,15 @@ export class DriveView {
           el(
             'div',
             { class: 'piano' },
-            NOTES.map((note) =>
-              el('button', { class: 'piano-key', type: 'button', onClick: () => hub.playTone(note.hz, PIANO_NOTE_MS) }, note.name.split(' ')[0]),
-            ),
+            NOTES.map((note) => this.#pianoKey(note)),
           ),
+        ),
+        el(
+          'div',
+          { class: 'drive-group' },
+          el('h3', { text: T.drive.jingles }),
+          el('p', { class: 'hint', text: T.drive.jinglesHint }),
+          el('div', { class: 'jingles' }, JINGLES.map((jingle) => this.#jingleButton(jingle))),
         ),
       ),
     );
@@ -88,10 +99,58 @@ export class DriveView {
     document.addEventListener('keyup', (event) => this.#onKey(event, false));
   }
 
-  /** Lets go of every arrow and stops the robot. */
+  /** Lets go of every arrow, stops the robot and the jingle. */
   stop() {
     this.#held = [];
+    this.#playing?.abort.abort();
     this.#hub.stop();
+  }
+
+  #pianoKey(note) {
+    const key = el('button', { class: 'piano-key', type: 'button', onClick: () => this.#hub.playTone(note.hz, PIANO_NOTE_MS) }, note.name.split(' ')[0]);
+    this.#pianoKeys.set(note.id, key);
+    return key;
+  }
+
+  #jingleButton(jingle) {
+    const button = el(
+      'button',
+      { class: 'button jingle', type: 'button', 'aria-pressed': 'false', onClick: () => this.#toggleJingle(jingle) },
+      el('span', { 'aria-hidden': 'true', text: jingle.icon }),
+      jingle.name,
+    );
+    this.#jingleButtons.set(jingle, button);
+    return button;
+  }
+
+  /** Plays a jingle; tapping the one that is playing stops it. */
+  async #toggleJingle(jingle) {
+    const wasPlaying = this.#playing?.jingle === jingle;
+    this.#playing?.abort.abort();
+    if (wasPlaying) return;
+    const abort = new AbortController();
+    const current = () => this.#playing?.abort === abort;
+    this.#playing = { jingle, abort };
+    this.#showPlaying(jingle, null);
+    try {
+      await playJingle(jingle, this.#hub, {
+        signal: abort.signal,
+        onNote: (id) => current() && this.#showPlaying(jingle, id),
+      });
+    } catch (error) {
+      if (!isAbort(error)) throw error;
+    } finally {
+      if (current()) {
+        this.#playing = null;
+        this.#showPlaying(null, null);
+      }
+    }
+  }
+
+  /** Marks the jingle being played and lights the piano key of its current note. */
+  #showPlaying(jingle, noteId) {
+    for (const [item, button] of this.#jingleButtons) button.setAttribute('aria-pressed', String(item === jingle));
+    for (const [id, key] of this.#pianoKeys) key.classList.toggle('is-playing', id === noteId);
   }
 
   #arrow(direction) {

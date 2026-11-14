@@ -124,7 +124,29 @@
   cursor: pointer;
 }
 
-.piano-key:active {
+.piano-key:active,
+.piano-key.is-playing {
+  border-color: var(--cat-sound);
+  background: var(--cat-sound);
+  color: var(--cat-sound-ink);
+}
+
+.jingles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.jingle {
+  justify-content: flex-start;
+  min-height: 46px;
+  padding-inline: 12px;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.jingle[aria-pressed="true"] {
+  border-color: var(--cat-sound);
   background: var(--cat-sound);
   color: var(--cat-sound-ink);
 }

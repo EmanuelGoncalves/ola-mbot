@@ -93,6 +93,8 @@ export const T = {
     lights: 'Luzes',
     lightsOff: 'Apagar as luzes',
     piano: 'Piano',
+    jingles: 'Músicas',
+    jinglesHint: 'Toca numa música para o robô a tocar. Vê as teclas do piano a acender e tenta tocá-la tu!',
     home: 'Voltar ao início',
   },
 
