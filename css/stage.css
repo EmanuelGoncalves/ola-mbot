@@ -1,0 +1,113 @@
+.stage {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stage-mat {
+  fill: var(--mat);
+}
+
+.stage-grid {
+  fill: none;
+  stroke: var(--mat-line);
+  stroke-width: 3;
+  stroke-dasharray: 2 12;
+  stroke-linecap: round;
+}
+
+.stage-box {
+  fill: var(--box);
+  stroke: var(--box-edge);
+  stroke-width: 4;
+}
+
+.stage-box-tape {
+  fill: none;
+  stroke: var(--box-edge);
+  stroke-width: 6;
+  opacity: 0.45;
+}
+
+.stage-star {
+  fill: var(--star);
+  stroke: var(--star-edge);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.stage-trail {
+  fill: none;
+  stroke: var(--trail);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+
+.stage-popup {
+  font-size: 44px;
+  text-anchor: middle;
+  animation: float-up 0.8s ease-out forwards;
+}
+
+@keyframes float-up {
+  to {
+    transform: translateY(-46px);
+    opacity: 0;
+  }
+}
+
+/* The robot */
+.robot-body {
+  fill: var(--robot-body);
+  stroke: var(--robot-dark);
+  stroke-width: 4;
+}
+
+.robot-wheel,
+.robot-nose,
+.robot-pupil {
+  fill: var(--robot-dark);
+}
+
+.robot-eye {
+  fill: var(--robot-eye);
+  stroke: var(--robot-dark);
+  stroke-width: 3;
+}
+
+.robot-led {
+  fill: var(--robot-led-off);
+  stroke: var(--robot-dark);
+  stroke-width: 2.5;
+}
+
+.robot-glow {
+  fill: none;
+  opacity: 0;
+}
+
+.robot-smile {
+  fill: none;
+  stroke: var(--robot-dark);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.robot-portrait {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-popup {
+    animation-duration: 0.01s;
+  }
+}

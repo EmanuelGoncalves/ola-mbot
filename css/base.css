@@ -1,0 +1,318 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 1.0625rem/1.45 var(--font-body);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Paints the band above the sticky bar on phones with a notch */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.125rem;
+}
+
+p,
+ol,
+ul {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding-block: 10px;
+  background: var(--bg);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  font: 800 1.6rem/1 var(--font-display);
+}
+
+.brand svg {
+  width: 44px;
+  height: 44px;
+}
+
+.tabs {
+  display: flex;
+  flex: 1 1 100%;
+  order: 3;
+  gap: 6px;
+  padding: 5px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.tab {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--ink-soft);
+  font: 700 1rem/1.1 var(--font-display);
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.tab-icon {
+  font-size: 1.35rem;
+}
+
+/* Five tabs need the icon above the name where the row is short */
+@media (max-width: 560px), (min-width: 980px) and (max-width: 1279px) {
+  .tab {
+    flex-direction: column;
+    gap: 0;
+    padding-inline: 2px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .tabs {
+    gap: 2px;
+    padding: 4px;
+  }
+
+  .tab {
+    font-size: 0.78rem;
+  }
+}
+
+@media (min-width: 980px) {
+  .brand {
+    margin-right: 0;
+  }
+
+  .tabs {
+    flex: 1 1 0;
+    order: 0;
+    max-width: 680px;
+    margin-inline: auto;
+  }
+}
+
+/* Buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--touch);
+  padding: 6px 18px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 1.0625rem/1.1 var(--font-display);
+  cursor: pointer;
+  transition: transform 80ms ease;
+}
+
+.button:active {
+  transform: translateY(2px);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button-go {
+  border-color: transparent;
+  background: var(--go);
+  color: var(--go-ink);
+}
+
+.button-stop {
+  border-color: transparent;
+  background: var(--stop);
+  color: var(--stop-ink);
+}
+
+.button-brand {
+  border-color: transparent;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.button-big {
+  min-height: 64px;
+  padding-inline: 26px;
+  font-size: 1.3rem;
+}
+
+.button[aria-pressed="true"] {
+  border-color: var(--brand);
+}
+
+/* Panels and views */
+.view {
+  padding-block: 6px 40px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-title .button {
+  flex: none;
+}
+
+.hint {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The robot's speech bubble */
+.bubble {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+  font-weight: 700;
+}
+
+.bubble p {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* Falling stars when a mission is done */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.celebration span {
+  position: absolute;
+  top: -10%;
+  font-size: 2rem;
+  animation: fall 2.4s ease-in forwards;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(120vh) rotate(300deg);
+  }
+}
+
+/* Tablets and computers: the app fills the screen and each tab scrolls by itself (see js/ui/layout.js) */
+@media (min-width: 700px) and (min-height: 560px) {
+  html,
+  body {
+    height: 100%;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .view {
+    flex: 1;
+    min-height: 0;
+    padding-bottom: 16px;
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration {
+    display: none;
+  }
+
+  .button {
+    transition: none;
+  }
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Olá, mBot! tests</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 24px; }
+    li.pass { color: #1f7a4d; }
+    li.fail { color: #b3261e; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1 id="summary">Running…</h1>
+  <ul id="results"></ul>
+  <script type="module">
+    import { runAll } from './harness.js';
+    import './protocol.test.js';
+    import './program.test.js';
+    import './simulator.test.js';
+    import './tutorial.test.js';
+
+    const results = await runAll();
+    const failed = results.filter((result) => result.error);
+    document.getElementById('summary').textContent = `${results.length - failed.length} passed, ${failed.length} failed`;
+    document.getElementById('results').append(
+      ...results.map(({ name, error }) => {
+        const item = document.createElement('li');
+        item.className = error ? 'fail' : 'pass';
+        item.textContent = error ? `${name}: ${error}` : name;
+        return item;
+      }),
+    );
+  </script>
+</body>
+</html>

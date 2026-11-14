@@ -1,0 +1,489 @@
+/* Programar: the lesson coach on top, then the mat first on phones, beside the program on upright tablets, three columns from 980px */
+.program-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.program-grid {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "stage" "palette" "editor";
+  align-items: start;
+}
+
+.palette-panel {
+  grid-area: palette;
+}
+
+.editor-panel {
+  grid-area: editor;
+}
+
+.stage-panel {
+  grid-area: stage;
+  scroll-margin-top: 150px;
+}
+
+.palette-panel[inert],
+.editor-panel[inert] {
+  opacity: 0.7;
+}
+
+@media (min-width: 700px) {
+  .program-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 44%);
+    grid-template-areas: "palette stage" "editor stage";
+  }
+}
+
+@media (min-width: 980px) {
+  .program-grid {
+    grid-template-columns: 236px minmax(0, 1fr) minmax(300px, 36%);
+    grid-template-areas: "palette editor stage";
+  }
+}
+
+/* Where the app fills the screen, each panel scrolls by itself and the mat never leaves */
+@media (min-width: 700px) and (min-height: 560px) {
+  .program-view {
+    height: 100%;
+  }
+
+  .program-grid {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: fit-content(45%) minmax(0, 1fr);
+  }
+
+  .program-grid > .panel {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  /* The mat shrinks so that the buttons under it stay on screen */
+  .stage-panel .stage {
+    align-self: center;
+    width: min(100%, max(200px, 100dvh - var(--around-mat)));
+  }
+
+  .program-view {
+    --around-mat: 350px;
+  }
+
+  .program-view[data-mode="lesson"] {
+    --around-mat: 430px;
+  }
+
+  .program-view[data-mode="mission"] {
+    --around-mat: 465px;
+  }
+}
+
+@media (min-width: 980px) and (min-height: 560px) {
+  .program-grid {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+/* The lesson coach */
+.coach {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 14px;
+  border: 3px solid var(--coach-edge);
+  border-radius: var(--radius);
+  background: var(--coach);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+
+.coach-robot {
+  flex: 0 0 64px;
+}
+
+.coach-body {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.coach-label {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.coach-text {
+  font: 700 1.2rem/1.3 var(--font-display);
+  text-wrap: pretty;
+}
+
+.coach-steps {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.coach-steps li {
+  width: 26px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.coach-steps .is-done {
+  background: var(--go);
+}
+
+.coach-steps .is-current {
+  background: var(--coach-edge);
+}
+
+.coach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coach-actions .button {
+  min-height: 46px;
+  padding-inline: 14px;
+  font-size: 1rem;
+}
+
+@media (max-width: 560px) {
+  .coach {
+    padding: 8px 12px;
+  }
+
+  .coach-robot {
+    display: none;
+  }
+
+  .coach-text {
+    font-size: 1.05rem;
+  }
+
+  .coach-actions .button {
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+}
+
+/* What the coach points at */
+.is-coach-target {
+  position: relative;
+  z-index: 1;
+  outline: 4px solid var(--coach-edge);
+  outline-offset: 3px;
+  scroll-margin: 170px 0 30px;
+  animation: beckon 1.1s ease-in-out infinite;
+}
+
+.is-coach-target::after {
+  content: "👇";
+  position: absolute;
+  top: -30px;
+  right: 6px;
+  font-size: 1.7rem;
+  line-height: 1;
+  pointer-events: none;
+  animation: bob 1.1s ease-in-out infinite;
+}
+
+@keyframes beckon {
+  50% {
+    outline-offset: 7px;
+  }
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+/* Blocks: one colour per family, set by data-category */
+[data-category="move"] {
+  --block: var(--cat-move);
+  --block-ink: var(--cat-move-ink);
+}
+
+[data-category="lights"] {
+  --block: var(--cat-lights);
+  --block-ink: var(--cat-lights-ink);
+}
+
+[data-category="sound"] {
+  --block: var(--cat-sound);
+  --block-ink: var(--cat-sound-ink);
+}
+
+[data-category="control"] {
+  --block: var(--cat-control);
+  --block-ink: var(--cat-control-ink);
+}
+
+[data-category="sense"] {
+  --block: var(--cat-sense);
+  --block-ink: var(--cat-sense-ink);
+}
+
+/* Palette */
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.palette-group {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.palette-heading {
+  flex: 1 1 100%;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.block-chip,
+.block-head,
+.block-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--radius-small);
+  font: 700 1.0625rem/1.15 var(--font-display);
+  text-align: left;
+  cursor: pointer;
+}
+
+.block-chip {
+  flex: 1 1 auto;
+  background: var(--block);
+  color: var(--block-ink);
+  transition: transform 80ms ease;
+}
+
+.block-chip:active {
+  transform: scale(0.97);
+}
+
+.block-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.block-label {
+  min-width: 0;
+}
+
+/* Program */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.block-start {
+  align-self: flex-start;
+  background: var(--go);
+  color: var(--go-ink);
+}
+
+.block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: var(--radius-small);
+  background: var(--block);
+  color: var(--block-ink);
+}
+
+.block-head {
+  width: 100%;
+  background: transparent;
+  color: inherit;
+}
+
+.block-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+
+.block.is-selected {
+  outline: 4px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.block.is-running {
+  outline: 4px solid var(--go);
+  outline-offset: 2px;
+}
+
+/* Blocks held by a container sit on a paler tray */
+.block > .block-list {
+  margin: 0 8px 8px 22px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+/* Choices and actions of the selected block */
+.toolbox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 8px 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.options,
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.option,
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 4px 14px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: 700 1rem/1.1 var(--font-display);
+  cursor: pointer;
+}
+
+.option[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.tools {
+  padding-top: 10px;
+  border-top: 2px dashed var(--line);
+}
+
+/* Where the next block goes */
+.cursor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 6px 14px;
+  border: 3px dashed var(--go);
+  border-radius: var(--radius-small);
+  color: var(--ink);
+  font-weight: 700;
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+.slot {
+  width: 100%;
+  min-height: 42px;
+  padding: 4px 14px;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--ink-soft);
+  font: 700 0.95rem/1.1 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Mission banner above the mat */
+.mission-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 2px solid var(--star-edge);
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.mission-banner .button {
+  min-height: 44px;
+  padding-inline: 12px;
+  font-size: 0.95rem;
+}
+
+.mission-banner-label {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .is-coach-target,
+  .is-coach-target::after {
+    animation: none;
+  }
+
+  .block-chip {
+    transition: none;
+  }
+}

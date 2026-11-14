@@ -1,0 +1,121 @@
+/* Layout: a top bar with five tabs; each tab is a grid of soft panels around the robot's mat. */
+:root {
+  --bg: #e6f3f9;
+  --surface: #ffffff;
+  --surface-soft: #f1f8fb;
+  --ink: #17364a;
+  --ink-soft: #52728a;
+  --line: #c9dfeb;
+  --brand: #14788f;
+  --brand-ink: #ffffff;
+  --go: #1f9463;
+  --go-ink: #ffffff;
+  --stop: #d9534f;
+  --stop-ink: #ffffff;
+  --focus: #e29a00;
+  --shadow: rgb(23 54 74 / 0.18);
+
+  /* The lesson coach and the thing it points at */
+  --coach: #fff4cf;
+  --coach-edge: #e2a400;
+
+  /* The robot's mat */
+  --mat: #d6ecf6;
+  --mat-line: #b3d6e8;
+  --box: #dba76b;
+  --box-edge: #b07a3f;
+  --trail: #f2853d;
+  --star: #ffc93c;
+  --star-edge: #d99a00;
+  --robot-body: #35b4c9;
+  --robot-dark: #1d4f63;
+  --robot-eye: #ffffff;
+  --robot-led-off: #e4f0f5;
+
+  /* The infrared remote: a dark handset in both themes, like the real one */
+  --remote-body: #24323d;
+  --remote-lamp: #b0413e;
+  --remote-key: #eef4f7;
+  --remote-key-ink: #1c2a33;
+  --remote-mode: #ff8f7a;
+  --remote-arrow: #7cc4f5;
+  --remote-spare: #9fb1bd;
+  --remote-mark: #ffd23c;
+  --backdrop: rgb(10 30 42 / 0.55);
+
+  /* Block families: the same in both themes, each with its own ink */
+  --cat-move: #2f73da;
+  --cat-move-ink: #ffffff;
+  --cat-lights: #ffc93c;
+  --cat-lights-ink: #3b2a00;
+  --cat-sound: #8456d8;
+  --cat-sound-ink: #ffffff;
+  --cat-control: #ff9f45;
+  --cat-control-ink: #3d1f00;
+  --cat-sense: #4cc792;
+  --cat-sense-ink: #06281a;
+
+  --font-display: "Baloo 2", ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius: 20px;
+  --radius-small: 14px;
+  --gap: 16px;
+  --touch: 52px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f212c;
+    --surface: #183140;
+    --surface-soft: #1f3c4d;
+    --ink: #e4f1f8;
+    --ink-soft: #a3bfcf;
+    --line: #2d5165;
+    --brand: #5cc4d8;
+    --brand-ink: #06222b;
+    --go: #46c48d;
+    --go-ink: #04261a;
+    --stop: #f08481;
+    --stop-ink: #3a0907;
+    --focus: #ffc247;
+    --shadow: rgb(0 0 0 / 0.45);
+    --coach: #3a3418;
+    --coach-edge: #e0ac2b;
+    --mat: #1c3d4f;
+    --mat-line: #2c566b;
+    --box: #c08a52;
+    --box-edge: #8c5e2c;
+    --robot-led-off: #35566a;
+    --remote-body: #0b161d;
+    --backdrop: rgb(0 0 0 / 0.65);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f212c;
+  --surface: #183140;
+  --surface-soft: #1f3c4d;
+  --ink: #e4f1f8;
+  --ink-soft: #a3bfcf;
+  --line: #2d5165;
+  --brand: #5cc4d8;
+  --brand-ink: #06222b;
+  --go: #46c48d;
+  --go-ink: #04261a;
+  --stop: #f08481;
+  --stop-ink: #3a0907;
+  --focus: #ffc247;
+  --shadow: rgb(0 0 0 / 0.45);
+  --coach: #3a3418;
+  --coach-edge: #e0ac2b;
+  --mat: #1c3d4f;
+  --mat-line: #2c566b;
+  --box: #c08a52;
+  --box-edge: #8c5e2c;
+  --robot-led-off: #35566a;
+  --remote-body: #0b161d;
+  --backdrop: rgb(0 0 0 / 0.65);
+  color-scheme: dark;
+}
