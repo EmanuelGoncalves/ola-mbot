@@ -52,7 +52,14 @@
   }
 }
 
-/* Conduzir or Explorar */
+/* The controls of one part of Conduzir, laid out like the panel they are in */
+.drive-part {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Conduzir, Luzes e sons, Sozinho or Explorar */
 .drive-modes {
   grid-column: 1 / -1;
   justify-self: start;

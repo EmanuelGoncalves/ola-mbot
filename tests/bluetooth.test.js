@@ -148,3 +148,17 @@ test('bluetooth: clearing forgets the packets that were waiting', async () => {
   await Promise.all(sent);
   equal(robot.written, [[1]]);
 });
+
+test('bluetooth: a robot that never answers the connection is given up', async () => {
+  const robot = pretend();
+  robot.device.gatt.connect = () => new Promise(() => {});
+  const link = new BluetoothLink({ bluetooth: robot.bluetooth, openLimitMs: 30 });
+  let failure = null;
+  try {
+    await link.connect();
+  } catch (error) {
+    failure = error.message;
+  }
+  ok(failure?.includes('did not answer'), `connect ended with: ${failure}`);
+  ok(!link.connected);
+});

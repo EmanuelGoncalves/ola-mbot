@@ -17,6 +17,14 @@ function whole(text, min, max) {
   return Number.isInteger(number) && number >= min && number <= max ? number : null;
 }
 
+const count = (number, one, many) => `${number} ${number === 1 ? one : many}`;
+
+/** How the Bluetooth link is doing, in a sentence. */
+export function describeHealth({ sent, failed, slowestMs, repairs }) {
+  const orders = `${count(sent, 'ordem enviada', 'ordens enviadas')}, ${count(failed, 'falhada', 'falhadas')}`;
+  return `${orders}; a mais lenta levou ${slowestMs} ms; ligação refeita ${count(repairs, 'vez', 'vezes')}.`;
+}
+
 /**
  * The orders of the command line: what to type, what it does, and how to do it.
  * `run(args, { hub, tuning, health })` resolves with the answer to show.
@@ -150,8 +158,7 @@ export const COMMANDS = [
     about: 'mostra como está a ligação Bluetooth',
     async run(args, { hub, health }) {
       if (!hub.real) return 'O mBot não está ligado: as ordens vão só para o robô do ecrã.';
-      const { sent, failed, slowestMs, repairs } = health();
-      return `${sent} ordens enviadas, ${failed} falhadas; a mais lenta levou ${slowestMs} ms; ligação refeita ${repairs} ${repairs === 1 ? 'vez' : 'vezes'}.`;
+      return describeHealth(health());
     },
   },
   {

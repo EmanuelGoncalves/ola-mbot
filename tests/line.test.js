@@ -62,9 +62,10 @@ test('line: the wheels are told again now and then, in case an order was lost', 
   equal(robot.driven.filter(([left, right]) => left === 100 && right === 100).length, 2, 'in 400 ms on the line:');
 });
 
-test('line: a robot that stops answering ends the following', async () => {
+test('line: a robot that stops answering is stopped at once, and the following ends', async () => {
   const robot = scripted([Line.BOTH, null, null, null, null, null]);
   equal(await followLine(robot, { speed: 100, wait: noWait }), 'silent');
+  equal(robot.driven, [[100, 100], [0, 0]]);
 });
 
 test('line: the robot on screen starts on its circuit and goes all the way round it', () => {
@@ -88,4 +89,15 @@ test('line: the robot on screen starts on its circuit and goes all the way round
   robot.stop();
   ok(furthest < 0.2, `it strayed ${furthest.toFixed(2)} squares from the line`);
   ok(Math.abs(turned) > 2 * Math.PI, `it only went ${Math.round((Math.abs(turned) * 180) / Math.PI)}° round`);
+});
+
+test('line: the boxes of the mat are put aside while the circuit is shown', () => {
+  const robot = new Simulator({ tuning: DEFAULT_TUNING, beeper: { play() {} } });
+  robot.setWorld({ obstacles: [[1, 2], [3, 3]] });
+  robot.showCircuit(true);
+  equal(robot.boxes, []);
+  robot.showCircuit(true);
+  robot.showCircuit(false);
+  equal(robot.boxes, [[1, 2], [3, 3]]);
+  equal(robot.circuit, null);
 });

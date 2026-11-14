@@ -1,5 +1,6 @@
 import { el } from '../dom.js';
 import { BluetoothLink, listsAllDevices } from '../robot/bluetooth.js';
+import { describeHealth } from '../robot/console.js';
 import { MBot } from '../robot/mbot.js';
 import { colorById, noteById } from '../robot/palette.js';
 import { measureQuarters, measureStep, sweep, sweepUntilRepeat } from '../robot/radar.js';
@@ -69,13 +70,20 @@ export class Connection {
       this.#hub.detach();
       this.#setState(State.LOST);
     });
-    // The robot went away by itself: whatever it was doing stops, while the link tries to get it back.
+    // The robot went away by itself: whatever it was doing stops, and the robot on screen
+    // carries on alone while the link tries to get the real one back.
     this.#link.addEventListener('repairing', () => {
       this.#test?.abort();
       onOpen();
+      this.#hub.detach();
       this.#setState(State.REPAIRING);
     });
-    this.#link.addEventListener('repaired', () => this.#setState(State.CONNECTED));
+    // It may have gone away with its wheels turning or its lights on: it starts again from nothing.
+    this.#link.addEventListener('repaired', () => {
+      this.#hub.attach(this.#mbot);
+      this.#hub.reset();
+      this.#setState(State.CONNECTED);
+    });
     this.#setState(State.IDLE);
   }
 
@@ -119,7 +127,7 @@ export class Connection {
           el('button', { class: 'button button-brand', type: 'button', onClick: () => this.#sayHello() }, '✨ ', T.connection.test),
           el('button', { class: 'button', type: 'button', onClick: () => this.#link.disconnect() }, T.connection.disconnect),
         ),
-        el('p', { class: 'hint', text: T.connection.health(this.#link.health) }),
+        el('p', { class: 'hint', text: T.connection.health(describeHealth(this.#link.health)) }),
       ];
     }
     if (this.#state === State.REPAIRING) {
@@ -274,6 +282,7 @@ export class Connection {
     if (!this.#hub.connected || degrees === null) return report(T.connection.spinsDone(turn));
     const { min, max, step } = TUNING_LIMITS.quarterTurnMs;
     const fitted = Math.round((this.#tuning.quarterTurnMs * 360) / degrees / step) * step;
+    if (Math.round(degrees) === 360) return report(T.connection.turnsRight(turn));
     this.#set('quarterTurnMs', Math.max(min, Math.min(max, fitted)));
     report(T.connection.turnsDone(turn, Math.round(degrees), this.#tuning.quarterTurnMs));
   }

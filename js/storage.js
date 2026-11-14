@@ -4,7 +4,7 @@ const PREFIX = 'ola-mbot:';
 export function load(key, fallback) {
   try {
     const raw = localStorage.getItem(PREFIX + key);
-    return raw === null ? fallback : JSON.parse(raw);
+    return (raw === null ? null : JSON.parse(raw)) ?? fallback;
   } catch {
     return fallback;
   }

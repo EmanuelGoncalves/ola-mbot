@@ -117,6 +117,12 @@ export class MyShow extends EventTarget {
     this.#changed();
   }
 
+  /** Puts back a row of colours, as after taking them all out by mistake. */
+  restore(colors) {
+    this.#colors = colors.slice(0, MOST_STEPS);
+    this.#changed();
+  }
+
   setSpeed(speed) {
     this.#speed = speed;
     this.#changed();

@@ -119,16 +119,21 @@ function unlike(a, b) {
   return Math.min(1, Math.abs(a - b) / (ALIKE_WITHIN * Math.max(a, b)));
 }
 
-/** How unlike two rows of looks are on average, the second starting `shift` places into the first. */
-function unlikeAt(looks, others, shift) {
+/**
+ * How unlike two rows of looks are on average, the second starting `shift` places into the first.
+ * Two looks that both saw nothing prove nothing and are left out; with fewer than `surePairs`
+ * pairs left, the rows count as unlike.
+ */
+function unlikeAt(looks, others, shift, surePairs) {
   let [total, pairs] = [0, 0];
   for (const [i, other] of others.entries()) {
     const look = looks[i + shift];
     if (look === undefined) break;
+    if (look === null && other === null) continue;
     total += unlike(look, other);
     pairs += 1;
   }
-  return pairs > 0 ? total / pairs : 1;
+  return pairs >= surePairs ? total / pairs : 1;
 }
 
 /**
@@ -143,7 +148,7 @@ export function spinsInATurn(looks, expected) {
   if (seen.length === 0 || allAlike) return null;
   let best = null;
   for (let turn = Math.ceil(expected * SHORTEST_TURN); turn + REPEAT_LOOKS <= looks.length; turn++) {
-    const error = unlikeAt(looks, looks.slice(0, looks.length - turn), turn);
+    const error = unlikeAt(looks, looks.slice(0, looks.length - turn), turn, 2);
     const nearer = best !== null && Math.abs(error - best.error) < 0.02 && Math.abs(turn - expected) < Math.abs(best.turn - expected);
     if (best === null || error < best.error - 0.02 || nearer) best = { turn, error };
   }
@@ -160,7 +165,7 @@ export function spinsPast(looks, fresh) {
   const round = [...looks, ...looks, ...looks];
   let best = null;
   for (let shift = -Math.floor(turn / 3); shift <= Math.floor(turn / 3); shift++) {
-    const error = unlikeAt(round, fresh, turn + shift);
+    const error = unlikeAt(round, fresh, turn + shift, 1);
     if (best === null || error < best.error - 0.02 || (Math.abs(error - best.error) < 0.02 && Math.abs(shift) < Math.abs(best.shift))) best = { shift, error };
   }
   return best !== null && best.error <= GOOD_REPEAT ? best.shift : null;

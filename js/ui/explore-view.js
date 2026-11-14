@@ -137,9 +137,14 @@ export class ExploreView {
   async #celebrate(widthCm, signal) {
     this.#say(T.explore.out(widthCm));
     celebrate();
-    await this.#hub.setLights(colorById('green'));
-    await playJingle(VICTORY, this.#hub, { signal });
-    await this.#hub.setLights(null);
+    try {
+      await this.#hub.setLights(colorById('green'));
+      await playJingle(VICTORY, this.#hub, { signal });
+    } catch (error) {
+      if (!isAbort(error)) throw error; // stopped in the middle of the party: the way out was found all the same
+    } finally {
+      await this.#hub.setLights(null);
+    }
   }
 
   #say(text) {

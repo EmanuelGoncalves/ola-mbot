@@ -155,8 +155,10 @@ function stopAllButton(stopAll) {
   async function stop() {
     button.disabled = true;
     label.textContent = T.stopAll.done;
+    button.setAttribute('aria-label', T.stopAll.done);
     await Promise.all([stopAll(), sleep(STOPPED_NOTE_MS)]);
     label.textContent = T.stopAll.label;
+    button.setAttribute('aria-label', T.stopAll.hint);
     button.disabled = false;
   }
   return button;

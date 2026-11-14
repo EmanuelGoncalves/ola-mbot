@@ -184,3 +184,18 @@ test('board: the rounds got right are kept, and an old star stays a star', () =>
   after.start(byId('mat-dobro'));
   ok(after.award(after.active));
 });
+
+test('board: the next round never asks the same question again', () => {
+  const stars = board();
+  const goals = ['2 + 2?', '2 + 2?', '2 + 2?', '3 + 1?'];
+  const exercise = { id: 'test-repeat', rounds: 3, make: () => ({ goal: goals.shift() ?? 'another?' }) };
+  stars.start(exercise);
+  equal(stars.active.goal, '2 + 2?');
+  stars.nextRound();
+  equal(stars.active.goal, '3 + 1?');
+});
+
+test('board: stars saved as nothing at all do not break the board', () => {
+  const stars = new MissionBoard({ store: { load: (key, fallback) => fallback, save: () => {} } });
+  equal(stars.roundsSolved(byId('mat-soma')), 0);
+});

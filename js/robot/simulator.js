@@ -45,6 +45,7 @@ export class Simulator extends EventTarget {
   #beeper;
   #wheels = { left: 0, right: 0 };
   #driving = false;
+  #boxesAside = null;
 
   constructor({ tuning, beeper }) {
     super();
@@ -88,8 +89,11 @@ export class Simulator extends EventTarget {
     this.dispatchEvent(new Event('world'));
   }
 
-  /** Draws the circuit on the mat, with the robot on its line and pointing along it; or takes it away. */
+  /** Draws the circuit on the mat, with the robot on its line and pointing along it; or takes it away. Twice the same does nothing. */
   showCircuit(shown) {
+    if (shown === Boolean(this.circuit)) return;
+    // The boxes of the mat would be in the robot's way: they are put aside meanwhile.
+    [this.obstacles, this.#boxesAside] = shown ? [new Set(), this.obstacles] : [this.#boxesAside, null];
     this.circuit = shown ? CIRCUIT : null;
     this.dispatchEvent(new Event('world'));
     this.reset();

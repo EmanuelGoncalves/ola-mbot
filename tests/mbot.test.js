@@ -12,6 +12,9 @@ function fakeLink() {
   return link;
 }
 
+/** The packet for a note: it sounds a little shorter than asked, to be over when the next one is due. */
+const note = (hz, ms) => tonePacket(hz, Math.max(30, ms - 40));
+
 function robot(tuning = {}) {
   const link = fakeLink();
   return { link, mbot: new MBot(link, { ...DEFAULT_TUNING, ...tuning }) };
@@ -78,9 +81,9 @@ test('mbot: nothing is sent while a note plays, and then only the newest of each
   const { link, mbot } = robot();
   await mbot.playTone(262, 40);
   const waiting = [mbot.drive(100, 100), mbot.playTone(294, 40), mbot.drive(50, 50), mbot.playTone(330, 40)];
-  equal(link.sent, [[...tonePacket(262, 40)]], 'sent during the note:');
+  equal(link.sent, [[...note(262, 40)]], 'sent during the note:');
   await Promise.all(waiting);
-  equal(link.sent, [[...tonePacket(262, 40)], [...wheelsPacket(50, 50)], [...tonePacket(330, 40)]]);
+  equal(link.sent, [[...note(262, 40)], [...wheelsPacket(50, 50)], [...note(330, 40)]]);
 });
 
 test('mbot: a step that bends to the right runs the left wheel faster', async () => {
@@ -140,7 +143,7 @@ test('mbot: a reset forgets what was waiting, stops the robot three times over a
   const waiting = [mbot.drive(100, 100), mbot.setLights(RED), mbot.playTone(294, 500)];
   await mbot.reset();
   await Promise.all(waiting);
-  equal(link.sent, [[...tonePacket(262, 300)], [...resetPacket()], [...resetPacket()], [...resetPacket()], [...lightsPacket([0, 0, 0])]]);
+  equal(link.sent, [[...note(262, 300)], [...resetPacket()], [...resetPacket()], [...resetPacket()], [...lightsPacket([0, 0, 0])]]);
 });
 
 test('hub: a reset stops the robot on screen, puts its lights out and resets the real one', async () => {
@@ -159,4 +162,26 @@ test('hub: a real-only spin goes either way and leaves the robot on screen alone
   await hub.spinReal(170);
   await hub.spinReal(170, undefined, -1);
   equal(spins, [[1, 170], [-1, 170]]);
+});
+
+test('mbot: a note sounds a little shorter than asked, and never too short to hear', async () => {
+  const { link, mbot } = robot();
+  await mbot.playTone(440, 238);
+  equal(link.sent, [[...tonePacket(440, 198)]]);
+  equal([...note(440, 10)], [...tonePacket(440, 30)]);
+});
+
+test('mbot: the robot is deaf from when the packet really went, not from when it was handed over', async () => {
+  const { link, mbot } = robot();
+  // A link that takes 100 ms to write, as when other packets are ahead in its queue.
+  link.send = async (bytes) => {
+    await pause(100);
+    link.sent.push([...bytes]);
+  };
+  await mbot.setLights(RED);
+  const driving = mbot.drive(100, 100);
+  await pause(40);
+  equal(link.sent.length, 1, '40 ms after the colour change went out:');
+  await driving;
+  equal(link.sent.length, 2);
 });

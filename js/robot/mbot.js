@@ -14,7 +14,8 @@ const SEEK_LIMIT_MS = 8000;
 const SEEK_POLL_MS = 80;
 const LIGHTS_OFF = [0, 0, 0];
 /** Time for a note to reach the robot and for the robot to start listening again after it. */
-const NOTE_MARGIN_MS = 80;
+const NOTE_MARGIN_MS = 40;
+const SHORTEST_NOTE_MS = 30;
 /**
  * To change its lights the firmware switches its interrupts off for about half a millisecond,
  * and loses the bytes that arrive meanwhile. A packet sent this soon after a colour change could
@@ -135,7 +136,9 @@ export class MBot {
   /** The note stops by itself after `ms`; until then the robot does nothing else. */
   playTone(hz, ms) {
     if (this.#focused) return Promise.resolve();
-    return this.#send(tonePacket(hz, ms), { kind: 'tone', deafMs: ms + NOTE_MARGIN_MS, last: true });
+    // The note is cut a little short, so that the robot is listening again when the next one is due.
+    const sounding = Math.max(SHORTEST_NOTE_MS, ms - NOTE_MARGIN_MS);
+    return this.#send(tonePacket(hz, sounding), { kind: 'tone', deafMs: ms, last: true });
   }
 
   /**
@@ -214,6 +217,8 @@ export class MBot {
     if (deafMs > 0) this.#listensAt = performance.now() + deafMs;
     if (kind === 'lights') this.#lightsSentAt = performance.now();
     await this.#link.send(bytes, kind);
+    // The packet may have waited its turn at the link: the robot is deaf from when it really went.
+    if (deafMs > 0) this.#listensAt = Math.max(this.#listensAt, performance.now() + deafMs);
   }
 
   async #driveFor(left, right, ms, signal) {

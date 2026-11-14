@@ -56,6 +56,8 @@ export async function followLine(robot, { speed, signal, onSeen = () => {}, wait
     const seen = await robot.readLine();
     const time = now();
     if (seen === null) {
+      if (silent === 0) await robot.drive(0, 0); // not driving on without seeing the line
+      last = null;
       if (++silent >= MOST_SILENT_LOOKS) return 'silent';
     } else {
       silent = 0;

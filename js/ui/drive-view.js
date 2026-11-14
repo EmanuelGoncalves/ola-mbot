@@ -5,7 +5,7 @@ import { followLine, Line } from '../robot/line-follower.js';
 import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
 import { distinct, locate, sweep, sweepUntilRepeat } from '../robot/radar.js';
-import { saveTuning } from '../robot/tuning.js';
+import { saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -25,11 +25,17 @@ const EYES_POLL_MS = 200;
 /** Following a line is steadier at less than the full driving speed, and never slower than the motors can turn. */
 const LINE_SPEED = 0.7;
 const SLOWEST_LINE_SPEED = 80;
-/** The two things to do in this tab: drive by hand, or let the robot explore by itself. */
+/** The parts of this tab: drive by hand, play with lights and sounds, let the robot work alone, or let it explore. */
+const EXPLORE = 'explore';
 const MODES = [
   { id: 'drive', icon: '🕹️' },
-  { id: 'explore', icon: '🧭' },
+  { id: 'fun', icon: '🎨' },
+  { id: 'alone', icon: '🤖' },
+  { id: EXPLORE, icon: '🧭' },
 ];
+
+/** One part of the controls: only the part of the mode that is on shows. */
+const part = (id, ...children) => el('div', { class: 'drive-part', 'data-part': id }, children);
 
 /** Wheel directions (left, right) for each arrow, and the keyboard key that does the same. */
 const DIRECTIONS = [
@@ -57,6 +63,8 @@ export class DriveView {
   #jingleButtons = new Map();
   /** The light show going round, `{ id, abort, done }`, or null. */
   #show = null;
+  /** The latest tap on a show or a colour: an earlier one that was still waiting gives way to it. */
+  #lightsTurn = null;
   #showButtons = new Map();
   /** "Parar antes de bater": the eyes stop the robot from driving into things. */
   #eyesOn = load('eyes', false);
@@ -73,11 +81,14 @@ export class DriveView {
   #scale = el('p', { class: 'hint' });
   /** The line following in progress, if any. */
   #line = null;
+  /** Settles when the line following in progress, if any, has let go of the robot. */
+  #lineDone = Promise.resolve();
   #lineButton = el('button', { class: 'button', type: 'button', 'aria-pressed': 'false', onClick: () => this.#toggleLine() });
   #lineStatus = el('p', { class: 'hint map-status', 'aria-live': 'polite' });
   #explore;
-  /** The panels of each mode, and the button that shows them. */
+  /** The panels and the part of each mode, and the button that shows them. */
   #modes;
+  #mode = 'drive';
 
   /** `onFreePlay` closes any lesson or mission, so the mat is the child's own. */
   constructor({ hub, simulator, tuning, onFreePlay }) {
@@ -103,76 +114,88 @@ export class DriveView {
       el(
         'section',
         { class: 'panel' },
-        el('h2', { text: T.drive.title }),
-        el('p', { class: 'hint', text: T.drive.hint }),
-        el('div', { class: 'pad' }, DIRECTIONS.map((direction) => this.#arrow(direction)), el('div', { class: 'pad-centre' }, portrait.element)),
-        this.#speedChooser(),
-        el('div', { class: 'drive-group' }, el('h3', { text: T.drive.eyes }), el('div', { class: 'row' }, this.#eyesButton, this.#eyesStatus)),
-        el(
-          'div',
-          { class: 'drive-group' },
-          el('h3', { text: T.drive.line }),
-          el('p', { class: 'hint', text: T.drive.lineHint }),
-          el('p', { class: 'hint', text: T.drive.lineBusy }),
-          el('div', { class: 'row' }, this.#lineButton),
-          this.#lineStatus,
+        part(
+          'drive',
+          el('h2', { text: T.drive.title }),
+          el('p', { class: 'hint', text: T.drive.hint }),
+          el('div', { class: 'pad' }, DIRECTIONS.map((direction) => this.#arrow(direction)), el('div', { class: 'pad-centre' }, portrait.element)),
+          this.#speedChooser(),
+          el('div', { class: 'drive-group' }, el('h3', { text: T.drive.eyes }), el('div', { class: 'row' }, this.#eyesButton, this.#eyesStatus)),
         ),
-        el(
-          'div',
-          { class: 'drive-group' },
-          el('h3', { text: T.drive.map }),
-          el('p', { class: 'hint', text: T.drive.mapHint }),
+        part(
+          'alone',
+          el('h2', { text: T.drive.aloneTitle }),
+          el('p', { class: 'hint', text: T.drive.aloneHint }),
           el(
             'div',
-            { class: 'row' },
-            this.#scanButton,
-            el('button', { class: 'button', type: 'button', onClick: () => this.#clearMap() }, '🧽 ', T.drive.mapClear),
+            { class: 'drive-group' },
+            el('h3', { text: T.drive.line }),
+            el('p', { class: 'hint', text: T.drive.lineHint }),
+            el('p', { class: 'hint', text: T.drive.lineBusy }),
+            el('div', { class: 'row' }, this.#lineButton),
+            this.#lineStatus,
           ),
-          this.#mapStatus,
-        ),
-        el(
-          'div',
-          { class: 'drive-group' },
-          el('h3', { text: T.drive.lights }),
           el(
             'div',
-            { class: 'row' },
-            COLORS.map((color) =>
-              el('button', {
-                class: 'light-dot',
-                type: 'button',
-                style: `background:${color.hex}`,
-                'aria-label': color.name,
-                onClick: () => this.#setLights(color),
-              }),
+            { class: 'drive-group' },
+            el('h3', { text: T.drive.map }),
+            el('p', { class: 'hint', text: T.drive.mapHint }),
+            el(
+              'div',
+              { class: 'row' },
+              this.#scanButton,
+              el('button', { class: 'button', type: 'button', onClick: () => this.#clearMap() }, '🧽 ', T.drive.mapClear),
             ),
-            el('button', { class: 'light-dot', type: 'button', 'aria-label': T.drive.lightsOff, onClick: () => this.#setLights(null) }, '🌙'),
+            this.#mapStatus,
           ),
         ),
-        el(
-          'div',
-          { class: 'drive-group' },
-          el('h3', { text: T.drive.shows }),
-          el('p', { class: 'hint', text: T.drive.showsHint }),
-          el('div', { class: 'jingles' }, [...SHOWS, { id: MY_SHOW_ID, icon: '⭐', name: T.drive.showMine }].map((show) => this.#showButton(show))),
-          el('details', { class: 'fold' }, el('summary', { text: `✏️ ${T.drive.showMake}` }), createShowEditor()),
-        ),
-        el(
-          'div',
-          { class: 'drive-group' },
-          el('h3', { text: T.drive.piano }),
+        part(
+          'fun',
+          el('h2', { text: T.drive.funTitle }),
           el(
             'div',
-            { class: 'piano' },
-            NOTES.map((note) => this.#pianoKey(note)),
+            { class: 'drive-group' },
+            el('h3', { text: T.drive.lights }),
+            el(
+              'div',
+              { class: 'row' },
+              COLORS.map((color) =>
+                el('button', {
+                  class: 'light-dot',
+                  type: 'button',
+                  style: `background:${color.hex}`,
+                  'aria-label': color.name,
+                  onClick: () => this.#setLights(color),
+                }),
+              ),
+              el('button', { class: 'light-dot', type: 'button', 'aria-label': T.drive.lightsOff, onClick: () => this.#setLights(null) }, '🌙'),
+            ),
           ),
-        ),
-        el(
-          'div',
-          { class: 'drive-group' },
-          el('h3', { text: T.drive.jingles }),
-          el('p', { class: 'hint', text: T.drive.jinglesHint }),
-          el('div', { class: 'jingles' }, JINGLES.map((jingle) => this.#jingleButton(jingle))),
+          el(
+            'div',
+            { class: 'drive-group' },
+            el('h3', { text: T.drive.shows }),
+            el('p', { class: 'hint', text: T.drive.showsHint }),
+            el('div', { class: 'jingles' }, [...SHOWS, { id: MY_SHOW_ID, icon: '⭐', name: T.drive.showMine }].map((show) => this.#showButton(show))),
+            el('details', { class: 'fold' }, el('summary', { text: `✏️ ${T.drive.showMake}` }), createShowEditor()),
+          ),
+          el(
+            'div',
+            { class: 'drive-group' },
+            el('h3', { text: T.drive.piano }),
+            el(
+              'div',
+              { class: 'piano' },
+              NOTES.map((note) => this.#pianoKey(note)),
+            ),
+          ),
+          el(
+            'div',
+            { class: 'drive-group' },
+            el('h3', { text: T.drive.jingles }),
+            el('p', { class: 'hint', text: T.drive.jinglesHint }),
+            el('div', { class: 'jingles' }, JINGLES.map((jingle) => this.#jingleButton(jingle))),
+          ),
         ),
       ),
     );
@@ -182,7 +205,8 @@ export class DriveView {
     this.#explore = new ExploreView({ hub, tuning });
     this.#modes = MODES.map((mode) => ({
       ...mode,
-      panels: mode.id === 'drive' ? [mat, controls] : [this.#explore.mapPanel, this.#explore.controlPanel],
+      panels: mode.id === EXPLORE ? [this.#explore.mapPanel, this.#explore.controlPanel] : [mat, controls],
+      part: controls.querySelector(`[data-part="${mode.id}"]`),
       button: el('button', { class: 'button', type: 'button', onClick: () => this.#showMode(mode.id) }, `${mode.icon} ${T.drive.modes[mode.id]}`),
     }));
     this.element.prepend(el('div', { class: 'choice drive-modes', role: 'group', 'aria-label': T.drive.modesLabel }, this.#modes.map((mode) => mode.button)));
@@ -214,12 +238,21 @@ export class DriveView {
     this.#hub.stop();
   }
 
-  /** Shows driving by hand or exploring; whatever the robot was doing in the other one stops. */
+  /**
+   * Shows one part of the tab. Lights, tunes and the robot's own jobs go on from one part to
+   * the next; only going to or from exploring, which has its own map, stops everything.
+   */
   #showMode(id) {
-    this.stop();
+    if ((id === EXPLORE) !== (this.#mode === EXPLORE)) this.stop();
+    if (this.#held.length > 0) {
+      this.#held = []; // the arrows are about to go out of reach
+      this.#applyDrive();
+    }
+    this.#mode = id;
+    for (const mode of this.#modes) mode.button.setAttribute('aria-pressed', String(mode.id === id));
     for (const mode of this.#modes) {
-      mode.button.setAttribute('aria-pressed', String(mode.id === id));
-      for (const panel of mode.panels) panel.hidden = mode.id !== id;
+      for (const panel of mode.panels) panel.hidden = (mode.id === EXPLORE) !== (id === EXPLORE);
+      if (mode.part) mode.part.hidden = mode.id !== id;
     }
   }
 
@@ -227,20 +260,25 @@ export class DriveView {
    * Follows the black line of the circuit that comes with the mBot, with the two sensors under
    * the robot. On screen, a round circuit is drawn on the mat for the robot there to follow.
    */
-  async #toggleLine() {
+  #toggleLine() {
     if (this.#line) {
       this.#line.abort();
       return;
     }
     this.stop();
-    await this.#scanDone.catch(() => {});
     const line = new AbortController();
-    this.#line = line;
+    this.#line = line; // taken at once, so that a second tap stops this one instead of starting another
     this.#showFollowing(true);
-    this.#simulator.showCircuit(true);
-    this.#lineStatus.textContent = T.drive.lineSeen[Line.BOTH];
-    this.#hub.focus(true);
+    this.#lineDone = this.#followTheLine(line);
+  }
+
+  async #followTheLine(line) {
     try {
+      await this.#scanDone.catch(() => {}); // a radar turn that was on lets go of the robot first
+      line.signal.throwIfAborted();
+      this.#simulator.showCircuit(true);
+      this.#lineStatus.textContent = T.drive.lineSeen[Line.BOTH];
+      this.#hub.focus(true);
       const ended = await followLine(this.#hub, {
         speed: Math.max(SLOWEST_LINE_SPEED, this.#speed * LINE_SPEED),
         signal: line.signal,
@@ -274,25 +312,30 @@ export class DriveView {
    * mBot sees becomes the boxes of the mat; the robot on screen only shows what it sees.
    */
   #scanRoom() {
-    if (this.#scan) this.#scan.abort();
-    else this.#scanDone = this.#sweepRoom();
-  }
-
-  async #sweepRoom() {
+    if (this.#scan) {
+      this.#scan.abort();
+      return;
+    }
     this.stop();
     const scan = new AbortController();
-    const real = this.#hub.connected;
-    if (real) this.#onFreePlay(); // the mat is about to change
-    const pose = { ...this.#simulator.pose };
-    let stops = 0;
-    this.#scan = scan;
+    this.#scan = scan; // taken at once, so that a second tap stops this turn instead of starting another
     this.#showScanning(true);
-    this.#simulator.showSightings([]);
-    const { scanStops, scanStepMs } = this.#tuning;
-    const sighting = (reading) => ({ from: pose, to: locate(pose, reading).spot });
-    this.#mapStatus.textContent = T.drive.mapScanning(0, scanStops);
-    this.#hub.focus(true);
+    this.#scanDone = this.#sweepRoom(scan);
+  }
+
+  async #sweepRoom(scan) {
+    let stops = 0;
     try {
+      await this.#lineDone.catch(() => {}); // line following that was on lets go of the robot first
+      scan.signal.throwIfAborted();
+      const real = this.#hub.connected;
+      if (real) this.#onFreePlay(); // the mat is about to change
+      const pose = { ...this.#simulator.pose };
+      this.#simulator.showSightings([]);
+      const { scanStops, scanStepMs } = this.#tuning;
+      const sighting = (reading) => ({ from: pose, to: locate(pose, reading).spot });
+      this.#mapStatus.textContent = T.drive.mapScanning(0, scanStops);
+      this.#hub.focus(true);
       if (!real) {
         await sweep(this.#hub, {
           stops: scanStops,
@@ -317,14 +360,16 @@ export class DriveView {
         this.#mapStatus.textContent = T.drive.mapStopped; // the mBot went away half-way: the readings cannot be trusted
         return;
       }
-      if (found && turn !== scanStops) {
+      const { min, max } = TUNING_LIMITS.scanStops;
+      if (found && turn !== scanStops && turn >= min && turn <= max) {
         this.#tuning.scanStops = turn; // learnt for the next time, and for exploring
         saveTuning(this.#tuning);
       }
       this.#simulator.showSightings(seen.filter((reading) => reading.range !== null).map(sighting));
       this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
-      const boxes = T.drive.mapFound(this.#simulator.boxes.length);
-      this.#mapStatus.textContent = found ? boxes : `${boxes} ${T.drive.mapNoRepeat}`;
+      const boxes = this.#simulator.boxes.length;
+      const unsure = boxes > 0 ? `${T.drive.mapFound(boxes)} ${T.drive.mapNoRepeat}` : T.drive.mapNothingSure;
+      this.#mapStatus.textContent = found ? T.drive.mapFound(boxes) : unsure;
     } catch (error) {
       if (!isAbort(error)) throw error;
       this.#mapStatus.textContent = T.drive.mapStopped;
@@ -336,9 +381,10 @@ export class DriveView {
     }
   }
 
-  /** Puts the robot on screen back on its starting square; a radar turn would no longer match. */
+  /** Puts the robot on screen back on its starting square; a radar turn or a line would no longer match. */
   #goHome() {
     this.#scan?.abort();
+    this.#line?.abort();
     this.#simulator.reset();
   }
 
@@ -367,10 +413,11 @@ export class DriveView {
 
   /** One colour, or none, chosen by hand: the show going round, if any, ends first. */
   async #setLights(color) {
+    const turn = (this.#lightsTurn = {});
     const show = this.#show;
     show?.abort.abort();
     await show?.done;
-    this.#hub.setLights(color);
+    if (this.#lightsTurn === turn) this.#hub.setLights(color);
   }
 
   #showButton(show) {
@@ -386,10 +433,12 @@ export class DriveView {
 
   /** Starts a light show going round and round; tapping the one that is on stops it. */
   async #toggleShow(id) {
+    const turn = (this.#lightsTurn = {});
     const previous = this.#show;
     previous?.abort.abort();
     await previous?.done;
-    if (previous?.id === id || showById(id).steps.length === 0) return;
+    // A later tap, on another show or on a colour, wins: two shows never go round together.
+    if (this.#lightsTurn !== turn || previous?.id === id || showById(id).steps.length === 0) return;
     const abort = new AbortController();
     this.#show = { id, abort, done: this.#loopShow(id, abort.signal) };
     this.#markShow(id);
@@ -545,7 +594,7 @@ export class DriveView {
   /** Arrow keys drive too, for computers with a keyboard. */
   #onKey(event, pressed) {
     const direction = DIRECTIONS.find((item) => item.key === event.key);
-    const elsewhere = this.element.closest('[hidden]') || this.#modes[0].panels[0].hidden || event.target.closest?.('input, dialog');
+    const elsewhere = this.element.closest('[hidden]') || this.#mode === EXPLORE || event.target.closest?.('input, dialog');
     if (!direction || event.repeat || elsewhere) return;
     event.preventDefault();
     this.#hold(direction, pressed);

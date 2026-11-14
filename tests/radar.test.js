@@ -105,6 +105,7 @@ test('radar: a full turn ends where the looks start to repeat', () => {
   equal(spinsInATurn(looks, 12), 15);
   equal(spinsInATurn(looks.map(() => null), 12), null, 'with nothing in sight:');
   equal(spinsInATurn(looks.map(() => 2), 12), null, 'with the same all round:');
+  equal(spinsInATurn([1.5, ...Array(21).fill(null)], 12), null, 'with one thing seen once and nothing else:');
 });
 
 test('radar: the real robot finds how many spins its full turn takes, and comes back', async () => {

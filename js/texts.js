@@ -164,6 +164,7 @@ export const T = {
     mapFound: (boxes) =>
       boxes === 0 ? 'Não vi nada por perto. O caminho está livre!' : boxes === 1 ? 'Vi uma coisa e pus 1 caixa no tapete.' : `Vi coisas à volta e pus ${boxes} caixas no tapete.`,
     mapNoRepeat: 'Mas não consegui ver onde acabava a volta, e as caixas podem estar no sítio errado. Põe uma caixa perto do robô e tenta outra vez.',
+    mapNothingSure: 'Não vi o suficiente para perceber onde acabava a volta. Põe uma caixa perto do robô e tenta outra vez.',
     mapOnScreen: 'Isto foi o robô do ecrã a ver as caixas do tapete. Com o mBot verdadeiro ligado, ele faz o mapa da tua sala!',
     mapStopped: 'Parei a meio. Quando quiseres, começamos outra vez.',
     mapCleared: 'O tapete ficou limpo.',
@@ -172,7 +173,10 @@ export const T = {
     jinglesHint: 'Toca numa música para o robô a tocar. Vê as teclas do piano a acender e tenta tocá-la tu!',
     home: 'Voltar ao início',
     modesLabel: 'O que fazer com o robô',
-    modes: { drive: 'Conduzir', explore: 'Explorar' },
+    modes: { drive: 'Conduzir', fun: 'Luzes e sons', alone: 'Sozinho', explore: 'Explorar' },
+    funTitle: 'Luzes e sons',
+    aloneTitle: 'O robô sozinho',
+    aloneHint: 'Aqui o robô trabalha sozinho, com os sensores dele. Para o parar, carrega outra vez no botão ou em «Parar tudo».',
   },
 
   parents: {
@@ -209,6 +213,7 @@ export const T = {
     add: (color) => `Juntar ${color}`,
     remove: (color, step) => `Tirar ${color}, que é a cor número ${step}`,
     clear: 'Tirar todas',
+    undo: 'Voltar atrás',
   },
 
   explore: {
@@ -277,8 +282,7 @@ export const T = {
     searchAll: 'Mostrar todos os aparelhos',
     allDevices: 'A lista mostra todos os aparelhos que estão perto. Procura o que tem um nome começado por «Makeblock».',
     repairing: 'O mBot desligou-se sozinho. Estou a tentar ligá-lo outra vez…',
-    health: ({ sent, failed, slowestMs, repairs }) =>
-      `Para os pais, o estado da ligação: ${sent} ordens enviadas, ${failed} falhadas; a mais lenta levou ${slowestMs} ms; ligação refeita ${repairs} ${repairs === 1 ? 'vez' : 'vezes'}.`,
+    health: (state) => `Para os pais, o estado da ligação: ${state}`,
     ready: 'O mBot está ligado! Tudo o que o robô do ecrã fizer, ele faz também.',
     lost: 'O mBot desligou-se. Podes continuar com o robô do ecrã.',
     test: 'Experimentar luz e som',
@@ -310,8 +314,14 @@ export const T = {
     turnsFailed:
       'Não consegui perceber onde acaba a volta. O mBot precisa de ver coisas a distâncias diferentes à volta dele: ponha uma caixa a um palmo e tente outra vez. Se ele quase não rodar, aumente o tempo de cada rodadela.',
     spinsDone: (spins) => `Uma volta inteira são ${spins} rodadelas: o radar ficou afinado. Não consegui medir os quartos de volta.`,
+    turnsRight: (spins) => `Uma volta inteira são ${spins} rodadelas, e quatro quartos de volta deram 360°: as voltas já estão certas.`,
     turnsDone: (spins, degrees, ms) =>
       `Uma volta inteira são ${spins} rodadelas. Quatro quartos de volta deram ${degrees}° em vez de 360°: mudei o tempo de um quarto de volta para ${seconds(ms)}. Carregue outra vez para confirmar.`,
+    testScan: 'Testar a volta do radar',
+    stepTime: 'Tempo de um passo',
+    turnTime: 'Tempo de um quarto de volta',
+    testStep: 'Testar um passo',
+    testTurn: 'Testar um quarto de volta',
     flipIntro: 'Se o mBot verdadeiro andar ao contrário do robô do ecrã, os motores foram ligados ao contrário na montagem. Estes interruptores corrigem isso aqui na aplicação.',
     flipDrive: 'Trocar frente e trás',
     flipTurn: 'Trocar esquerda e direita',

@@ -98,6 +98,8 @@ export const MISSIONS = [
   },
 ];
 
+const MOST_REDRAWS = 8;
+
 /**
  * Keeps the mission or school exercise being played, the stars already earned and,
  * for the exercises that draw new numbers every round, how many rounds were got right.
@@ -176,7 +178,11 @@ export class MissionBoard extends EventTarget {
   /** An exercise with `make` gets its numbers here; `round` tells one round from the next. */
   #round(mission) {
     this.roundSolved = false;
-    return mission.make ? { ...mission, ...mission.make(this.#random), round: ++this.#roundsMade } : mission;
+    if (!mission.make) return mission;
+    // Drawn again when the numbers come out the same as in the round before.
+    let made = mission.make(this.#random);
+    for (let tries = 0; made.goal === mission.goal && tries < MOST_REDRAWS; tries++) made = mission.make(this.#random);
+    return { ...mission, ...made, round: ++this.#roundsMade };
   }
 
   #changed() {

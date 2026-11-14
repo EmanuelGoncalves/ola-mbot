@@ -37,7 +37,7 @@ Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 | :-: | --- | --- |
 | 🎓 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
 | 🧩 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. Moves, lights and light shows, notes and whole tunes, repeats, and the robot's eyes. |
-| 🕹️ | **Conduzir** | Drive with arrows, stop before bumping, follow the black line of the printed circuit, map the room, start a light show, play the buzzer like a piano or tap a tune. Its **Explorar** part lets the robot find the way out of the room by itself. |
+| 🕹️ | **Conduzir** | Four parts. **Conduzir**: drive with arrows and stop before bumping. **Luzes e sons**: colours, light shows, a piano and tunes. **Sozinho**: the robot follows the black line of the printed circuit, or maps the room. **Explorar**: it finds the way out of the room by itself. |
 | ⭐ | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
 | 🎒 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | 📡 | **Comando** | The infrared remote that comes in the box, button by button. |
@@ -51,7 +51,7 @@ and resets the robot.
 | | |
 | --- | --- |
 | ![The lessons of the Aprender tab, three of them done](docs/screenshots/aprender.png)<br>**Aprender**: the lessons, in order. | ![A lesson: the robot coach points at the next block to tap](docs/screenshots/licao.png)<br>A lesson: the coach points at what to tap next. |
-| ![The Programar tab with a program of five blocks and the robot's trail on the mat](docs/screenshots/programar.png)<br>**Programar**: blocks, the program and the mat. | ![The Conduzir tab after a radar turn, with rays from the robot to the boxes](docs/screenshots/conduzir.png)<br>**Conduzir**: arrows, and the radar's view of the mat. |
+| ![The Programar tab with a program of five blocks and the robot's trail on the mat](docs/screenshots/programar.png)<br>**Programar**: blocks, the program and the mat. | ![The Sozinho part of Conduzir after a radar turn, with rays from the robot to the boxes](docs/screenshots/conduzir.png)<br>**Conduzir**: four parts. Here the robot maps what is around it. |
 | ![The Explorar part of Conduzir: a map of a room with the robot's path along the walls and out through a door 85 cm wide](docs/screenshots/explorar.png)<br>**Explorar**: the robot finds the door by itself. | ![The labyrinth mission solved, with its star](docs/screenshots/missao.png)<br>**Missões**: the labyrinth, solved. |
 | ![The Escola tab with the Matemática exercises by level](docs/screenshots/escola.png)<br>**Escola**: exercises by subject and level. | ![A Português exercise: a short text, a question and three signs on the mat](docs/screenshots/exercicio.png)<br>An exercise: read, then take the robot to the answer. |
 | ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. | ![The Pais tab: what the sensors read, and a command line](docs/screenshots/pais.png)<br>**Pais**: live readings and a command line. |

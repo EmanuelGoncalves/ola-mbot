@@ -5,6 +5,8 @@ import { NOTIFY_UUID, SERVICE_UUID, WRITE_UUID } from './protocol.js';
 const NAME_PREFIXES = ['Makeblock', 'makeblock', 'MakeBlock', 'mBot'];
 /** A write that takes longer than this is given up, so that the ones waiting behind it can go. */
 const WRITE_LIMIT_MS = 1500;
+/** Connecting to a robot that does not answer is given up after this long. */
+const OPEN_LIMIT_MS = 12000;
 /** A short rest between two writes, so that the robot's small buffer keeps up. */
 const WRITE_GAP_MS = 10;
 /** After this many writes in a row given up, the link is taken for stuck and started again. */
@@ -31,6 +33,7 @@ export class BluetoothLink extends EventTarget {
 
   #bluetooth;
   #writeLimitMs;
+  #openLimitMs;
   #wait;
   #device = null;
   #writer = null;
@@ -42,11 +45,12 @@ export class BluetoothLink extends EventTarget {
   #repairing = false;
   #stuck = 0;
 
-  /** `bluetooth`, `writeLimitMs` and `wait` can be replaced in tests. */
-  constructor({ bluetooth = globalThis.navigator?.bluetooth, writeLimitMs = WRITE_LIMIT_MS, wait = sleep } = {}) {
+  /** `bluetooth`, the two time limits and `wait` can be replaced in tests. */
+  constructor({ bluetooth = globalThis.navigator?.bluetooth, writeLimitMs = WRITE_LIMIT_MS, openLimitMs = OPEN_LIMIT_MS, wait = sleep } = {}) {
     super();
     this.#bluetooth = bluetooth;
     this.#writeLimitMs = writeLimitMs;
+    this.#openLimitMs = openLimitMs;
     this.#wait = wait;
   }
 
@@ -109,13 +113,23 @@ export class BluetoothLink extends EventTarget {
     this.#device?.gatt?.disconnect();
   }
 
+  /** Connects and finds the two characteristics; gives up, and lets go of the robot, if that takes too long. */
   async #open(device) {
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    const reader = await service.getCharacteristic(NOTIFY_UUID);
-    reader.addEventListener('characteristicvaluechanged', this.#onData);
-    await reader.startNotifications();
-    this.#writer = await service.getCharacteristic(WRITE_UUID);
+    const opening = (async () => {
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      const reader = await service.getCharacteristic(NOTIFY_UUID);
+      reader.addEventListener('characteristicvaluechanged', this.#onData);
+      await reader.startNotifications();
+      return service.getCharacteristic(WRITE_UUID);
+    })();
+    try {
+      this.#writer = await withLimit(opening, this.#openLimitMs, 'The mBot did not answer in time');
+    } catch (error) {
+      opening.catch(() => {}); // it may still fail later, with nobody waiting
+      device.gatt.disconnect();
+      throw error;
+    }
   }
 
   /** Writes the waiting packets one after the other. */
@@ -136,12 +150,8 @@ export class BluetoothLink extends EventTarget {
     const writer = this.#writer;
     const quick = writer.writeValueWithoutResponse && writer.properties?.writeWithoutResponse;
     const started = performance.now();
-    let timer;
-    const tooLong = new Promise((resolve, reject) => {
-      timer = setTimeout(() => reject(new Error('The mBot did not take the command in time')), this.#writeLimitMs);
-    });
     try {
-      await Promise.race([quick ? writer.writeValueWithoutResponse(bytes) : writer.writeValue(bytes), tooLong]);
+      await withLimit(quick ? writer.writeValueWithoutResponse(bytes) : writer.writeValue(bytes), this.#writeLimitMs, 'The mBot did not take the command in time');
       this.health.sent += 1;
       this.dispatchEvent(new CustomEvent('sent', { detail: bytes }));
       this.health.slowestMs = Math.max(this.health.slowestMs, Math.round(performance.now() - started));
@@ -151,8 +161,6 @@ export class BluetoothLink extends EventTarget {
       console.warn('mBot write failed', error);
       // A link that takes nothing any more is dropped; the repair below starts it again.
       if (++this.#stuck >= STUCK_AFTER) this.#device.gatt.disconnect();
-    } finally {
-      clearTimeout(timer);
     }
   }
 
@@ -192,4 +200,13 @@ export class BluetoothLink extends EventTarget {
     if (this.#wanted) this.#repair();
     else this.dispatchEvent(new Event('disconnect'));
   };
+}
+
+/** Resolves like `promise`, or rejects with `message` if it takes longer than `ms`. */
+function withLimit(promise, ms, message) {
+  let timer;
+  const tooLong = new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, tooLong]).finally(() => clearTimeout(timer));
 }
