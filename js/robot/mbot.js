@@ -1,9 +1,11 @@
 import { sleep } from '../timing.js';
 import { distanceRequest, lightsPacket, ReplyParser, tonePacket, wheelsPacket } from './protocol.js';
 
-const DISTANCE_INDEX = 1;
 const REPLY_TIMEOUT_MS = 400;
-const OBSTACLE_CM = 15;
+/** Each question carries a number, so answers are not mixed up when two are waiting. */
+const LAST_INDEX = 250;
+/** The sensor answers 400 cm when it sees nothing, and 0 when it could not measure. */
+export const OUT_OF_SIGHT_CM = 400;
 const SEEK_LIMIT_MS = 8000;
 const SEEK_POLL_MS = 80;
 const LIGHTS_OFF = [0, 0, 0];
@@ -14,6 +16,7 @@ export class MBot {
   #tuning;
   #parser = new ReplyParser();
   #waiting = new Map();
+  #index = 0;
 
   constructor(link, tuning) {
     this.#link = link;
@@ -41,8 +44,13 @@ export class MBot {
 
   /** Positive quarter turns go right, negative go left. */
   turn(quarters, signal) {
-    const speed = Math.sign(quarters) * this.#tuning.speed;
-    return this.#driveFor(speed, -speed, Math.abs(quarters) * this.#tuning.quarterTurnMs, signal);
+    return this.rotate(quarters, Math.abs(quarters) * this.#tuning.quarterTurnMs, signal);
+  }
+
+  /** Spins on the spot during `ms`, clockwise when `degrees` is positive. The mBot cannot measure the angle. */
+  rotate(degrees, ms, signal) {
+    const speed = Math.sign(degrees) * this.#tuning.speed;
+    return this.#driveFor(speed, -speed, ms, signal);
   }
 
   async moveUntilObstacle(signal) {
@@ -69,10 +77,13 @@ export class MBot {
     setTimeout(() => this.#link.send(tonePacket(0, 0)).catch(() => {}), ms);
   }
 
-  /** What the ultrasonic "eyes" see: `{ blocked, cm }`, or null if the robot did not answer. */
+  /**
+   * What the ultrasonic "eyes" see: `{ blocked, cm }`, or null if the robot did not answer.
+   * Blocked means something is less than one square away, as for the robot on screen.
+   */
   async look() {
     const cm = await this.readDistance();
-    return cm === null ? null : { blocked: cm > 0 && cm < OBSTACLE_CM, cm };
+    return cm === null ? null : { blocked: cm > 0 && cm < this.#tuning.cellCm, cm };
   }
 
   async obstacleAhead() {
@@ -81,9 +92,12 @@ export class MBot {
 
   /** Distance seen by the ultrasonic sensor in cm, or null if the robot did not answer. */
   async readDistance() {
-    const reply = new Promise((resolve) => this.#waiting.set(DISTANCE_INDEX, resolve));
-    await this.#link.send(distanceRequest(DISTANCE_INDEX));
-    return Promise.race([reply, sleep(REPLY_TIMEOUT_MS).then(() => null)]);
+    const index = (this.#index = (this.#index % LAST_INDEX) + 1);
+    const reply = new Promise((resolve) => this.#waiting.set(index, resolve));
+    await this.#link.send(distanceRequest(index));
+    const cm = await Promise.race([reply, sleep(REPLY_TIMEOUT_MS).then(() => null)]);
+    this.#waiting.delete(index);
+    return cm;
   }
 
   async #driveFor(left, right, ms, signal) {

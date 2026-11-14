@@ -1,3 +1,5 @@
+const seconds = (ms) => `${(ms / 1000).toFixed(2).replace('.', ',')} s`;
+
 /** Interface text, in European Portuguese, written for an eight-year-old. */
 export const T = {
   appName: 'Olá, mBot!',
@@ -7,6 +9,7 @@ export const T = {
     program: 'Programar',
     drive: 'Conduzir',
     missions: 'Missões',
+    school: 'Escola',
     remote: 'Comando',
   },
 
@@ -39,6 +42,7 @@ export const T = {
     stopped: 'Parei. Quando quiseres, começamos outra vez.',
     bump: 'Ups, por aqui não consigo passar!',
     matHint: 'Toca num quadrado do tapete para pôr ou tirar uma caixa.',
+    scale: (cm) => `Um quadrado do tapete são ${cm} cm no chão.`,
   },
 
   mission: {
@@ -54,6 +58,22 @@ export const T = {
     replay: 'Jogar outra vez',
     earned: 'Estrela ganha',
     progress: (stars, total) => `Tens ${stars} de ${total} estrelas`,
+  },
+
+  school: {
+    title: 'Escola do robô',
+    intro: 'Aqui o robô precisa da tua cabeça! Resolve a pergunta: a resposta diz-te o que o robô tem de fazer. Não há pressa, podes tentar as vezes que quiseres.',
+    subjects: 'Disciplina',
+    year: (year) => `${year}.º ano`,
+    progress: (stars, total, subject) => `Tens ${stars} de ${total} estrelas em ${subject}`,
+    leave: 'Sair do exercício',
+    done: 'Resposta certa! Ganhaste uma estrela!',
+    retry: 'Ainda não é isso. Lê outra vez com calma, espreita a dica e tenta de novo, tu consegues!',
+    more: 'Ver mais exercícios',
+    ready: 'Lê com calma. A resposta diz-te o que eu tenho de fazer!',
+    play: 'Resolver',
+    replay: 'Resolver outra vez',
+    earned: 'Estrela ganha',
   },
 
   learn: {
@@ -76,6 +96,7 @@ export const T = {
     after: [
       'No separador «Programar», o tapete é teu: toca num quadrado para pôr ou tirar uma caixa e inventa os teus programas.',
       'No separador «Missões» há desafios para ganhares estrelas.',
+      'No separador «Escola» o robô precisa das tuas contas e da tua leitura.',
       'No separador «Conduzir» guias o robô com as setas.',
       'Para o mBot verdadeiro fazer o mesmo que o robô do ecrã, pede a um adulto para carregar em «Ligar ao robô».',
     ],
@@ -98,6 +119,17 @@ export const T = {
     eyesClear: 'Caminho livre!',
     eyesBlocked: 'Obstáculo à frente!',
     eyesDistance: (cm) => `Está a ${Math.round(cm)} cm.`,
+    map: 'Mapa da sala',
+    mapHint: 'O robô dá uma volta inteira, devagarinho, e mede com os olhos o que está à volta dele. Onde vir coisas, põe caixas no tapete. Se alguma ficar no sítio errado, corrige-a no separador «Programar», tocando no tapete.',
+    mapScan: 'Fazer o mapa',
+    mapStop: 'Parar',
+    mapClear: 'Limpar o tapete',
+    mapScanning: (stop, total) => `A olhar à volta… ${stop} de ${total}`,
+    mapFound: (boxes) =>
+      boxes === 0 ? 'Não vi nada por perto. O caminho está livre!' : boxes === 1 ? 'Vi uma coisa e pus 1 caixa no tapete.' : `Vi coisas à volta e pus ${boxes} caixas no tapete.`,
+    mapOnScreen: 'Isto foi o robô do ecrã a ver as caixas do tapete. Com o mBot verdadeiro ligado, ele faz o mapa da tua sala!',
+    mapStopped: 'Parei a meio. Quando quiseres, começamos outra vez.',
+    mapCleared: 'O tapete ficou limpo.',
     piano: 'Piano',
     jingles: 'Músicas',
     jinglesHint: 'Toca numa música para o robô a tocar. Vê as teclas do piano a acender e tenta tocá-la tu!',
@@ -139,7 +171,17 @@ export const T = {
     ],
     tuningTitle: 'Afinar o robô (para os pais)',
     tuningIntro:
-      'O mBot não mede a distância que anda: um passo é um tempo com os motores ligados. Ajuste os tempos até um passo ter cerca de um palmo e o quarto de volta ficar certinho. As pilhas e o chão mudam o resultado.',
+      'O mBot não mede a distância que anda: um passo é um tempo com os motores ligados. Ajuste os tempos até um passo ter o tamanho de um quadrado do tapete e o quarto de volta ficar certinho. As pilhas e o chão mudam o resultado.',
+    cellSize: 'Tamanho de um quadrado do tapete',
+    centimetres: (cm) => `${cm} cm`,
+    fitIntro: 'O mBot pode medir o passo sozinho. Ponha-o virado de frente para uma parede lisa, a três palmos ou mais, e carregue no botão: ele dá um passo, mede com os olhos quanto andou e acerta o tempo.',
+    fitStep: 'Afinar o passo sozinho',
+    fitNeedsRobot: 'Ligue primeiro o mBot verdadeiro.',
+    fitFailed: 'Não consegui medir. O mBot tem de estar virado de frente para uma parede lisa, a três palmos ou mais (60 cm).',
+    fitDone: (cm, ms) => `O mBot andou ${cm} cm. Mudei o tempo de um passo para ${seconds(ms)}. Carregue outra vez para confirmar.`,
+    scanIntro: 'Para o mapa da sala, o mBot dá uma volta inteira em 12 rodadelas curtas. Ajuste o tempo até ele acabar virado para onde começou.',
+    scanTime: 'Radar: tempo de cada rodadela',
+    testScan: 'Testar a volta do radar',
     stepTime: 'Tempo de um passo',
     turnTime: 'Tempo de um quarto de volta',
     testStep: 'Testar um passo',
@@ -147,6 +189,6 @@ export const T = {
     flipIntro: 'Se o mBot verdadeiro andar ao contrário do robô do ecrã, os motores foram ligados ao contrário na montagem. Estes interruptores corrigem isso aqui na aplicação.',
     flipDrive: 'Trocar a frente com a trás',
     flipTurn: 'Trocar a esquerda com a direita',
-    milliseconds: (ms) => `${(ms / 1000).toFixed(2).replace('.', ',')} s`,
+    milliseconds: seconds,
   },
 };

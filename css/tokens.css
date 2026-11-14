@@ -1,4 +1,4 @@
-/* Layout: a top bar with five tabs; each tab is a grid of soft panels around the robot's mat. */
+/* Layout: a top bar with six tabs; each tab is a grid of soft panels around the robot's mat. */
 :root {
   --bg: #e6f3f9;
   --surface: #ffffff;

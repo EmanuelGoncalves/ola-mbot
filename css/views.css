@@ -160,9 +160,10 @@
   color: var(--cat-sound-ink);
 }
 
-/* Aprender and Missões: an introduction and a grid of cards */
+/* Aprender, Missões and Escola: an introduction and a grid of cards */
 .learn-view,
 .missions-view,
+.school-view,
 .remote-view {
   display: grid;
   gap: var(--gap);
@@ -217,6 +218,35 @@
 
 .card-mark-empty {
   color: var(--ink-soft);
+}
+
+/* Escola: choose the subject and the year, then a row of cards per level */
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.choice .button {
+  border-color: transparent;
+}
+
+.choice .button[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.school-level {
+  display: grid;
+  gap: 10px;
+}
+
+.school-level > h3 {
+  font: 800 1.25rem/1.2 var(--font-display);
 }
 
 .diploma {

@@ -1,6 +1,8 @@
 import { el } from '../dom.js';
 import { JINGLES, playJingle } from '../jingles.js';
+import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
+import { distinct, locate, SCAN, sweep } from '../robot/radar.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -15,8 +17,6 @@ const SPEEDS = [
 const TURN_FACTOR = 0.7;
 const PIANO_NOTE_MS = 300;
 const EYES_POLL_MS = 200;
-/** The real sensor answers 400 cm when it sees nothing. */
-const OUT_OF_SIGHT_CM = 400;
 
 /** Wheel directions (left, right) for each arrow, and the keyboard key that does the same. */
 const DIRECTIONS = [
@@ -26,9 +26,12 @@ const DIRECTIONS = [
   { id: 'backward', icon: '▼', wheels: [-1, -1], key: 'ArrowDown' },
 ];
 
-/** The "Conduzir" tab: hold an arrow to drive, tap lights, piano keys and jingles. */
+/** The "Conduzir" tab: hold an arrow to drive, map the room, tap lights, piano keys and jingles. */
 export class DriveView {
   #hub;
+  #simulator;
+  #tuning;
+  #onFreePlay;
   #speed = SPEEDS[1].value;
   /** Arrows being pressed, newest last: the robot follows the newest. */
   #held = [];
@@ -42,9 +45,18 @@ export class DriveView {
   #blocked = false;
   #eyesButton = el('button', { class: 'button', type: 'button', onClick: () => this.#setEyes(!this.#eyesOn) }, '👀 ', T.drive.eyesToggle);
   #eyesStatus = el('p', { class: 'hint eyes-status' });
+  /** The radar turn in progress, if any. */
+  #scan = null;
+  #scanButton = el('button', { class: 'button', type: 'button', onClick: () => this.#scanRoom() });
+  #mapStatus = el('p', { class: 'hint eyes-status', 'aria-live': 'polite' });
+  #scale = el('p', { class: 'hint' });
 
-  constructor({ hub, simulator }) {
+  /** `onFreePlay` closes any lesson or mission, so the mat is the child's own. */
+  constructor({ hub, simulator, tuning, onFreePlay }) {
     this.#hub = hub;
+    this.#simulator = simulator;
+    this.#tuning = tuning;
+    this.#onFreePlay = onFreePlay;
     const stage = new StageView(simulator, T.tabs.drive);
     stage.editable = false;
     const portrait = createRobotPortrait();
@@ -58,6 +70,7 @@ export class DriveView {
         { class: 'panel' },
         stage.element,
         el('div', { class: 'row' }, el('button', { class: 'button', type: 'button', onClick: () => simulator.reset() }, '🏠 ', T.drive.home)),
+        this.#scale,
       ),
       el(
         'section',
@@ -67,6 +80,19 @@ export class DriveView {
         el('div', { class: 'pad' }, DIRECTIONS.map((direction) => this.#arrow(direction)), el('div', { class: 'pad-centre' }, portrait.element)),
         this.#speedChooser(),
         el('div', { class: 'drive-group' }, el('h3', { text: T.drive.eyes }), el('div', { class: 'row' }, this.#eyesButton, this.#eyesStatus)),
+        el(
+          'div',
+          { class: 'drive-group' },
+          el('h3', { text: T.drive.map }),
+          el('p', { class: 'hint', text: T.drive.mapHint }),
+          el(
+            'div',
+            { class: 'row' },
+            this.#scanButton,
+            el('button', { class: 'button', type: 'button', onClick: () => this.#clearMap() }, '🧽 ', T.drive.mapClear),
+          ),
+          this.#mapStatus,
+        ),
         el(
           'div',
           { class: 'drive-group' },
@@ -109,13 +135,74 @@ export class DriveView {
     document.addEventListener('keydown', (event) => this.#onKey(event, true));
     document.addEventListener('keyup', (event) => this.#onKey(event, false));
     this.#setEyes(this.#eyesOn);
+    this.#showScanning(false);
+    this.showScale();
   }
 
-  /** Lets go of every arrow, stops the robot and the jingle. */
+  /** Lets go of every arrow, stops the robot, the radar and the jingle. */
   stop() {
     this.#held = [];
+    this.#scan?.abort();
     this.#playing?.abort.abort();
     this.#hub.stop();
+  }
+
+  /** Says how big a square of the mat is on the floor. */
+  showScale() {
+    this.#scale.textContent = `📏 ${T.program.scale(this.#tuning.cellCm)}`;
+  }
+
+  /**
+   * The radar: the robot turns once around and looks at every stop. What the real
+   * mBot sees becomes the boxes of the mat; the robot on screen only shows what it sees.
+   */
+  async #scanRoom() {
+    if (this.#scan) {
+      this.#scan.abort();
+      return;
+    }
+    this.stop();
+    this.#onFreePlay();
+    const scan = new AbortController();
+    const real = this.#hub.connected;
+    const pose = { ...this.#simulator.pose };
+    let stops = 0;
+    this.#scan = scan;
+    this.#showScanning(true);
+    this.#simulator.showSightings([]);
+    this.#mapStatus.textContent = T.drive.mapScanning(0, SCAN.stops);
+    try {
+      const seen = await sweep(this.#hub, {
+        stepMs: this.#tuning.scanStepMs,
+        signal: scan.signal,
+        onStop: (reading) => {
+          this.#mapStatus.textContent = T.drive.mapScanning(++stops, SCAN.stops);
+          if (reading.range === null) return;
+          this.#simulator.showSightings([...this.#simulator.sightings, { from: pose, to: locate(pose, reading).spot }]);
+        },
+      });
+      if (real) this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
+      this.#mapStatus.textContent = real ? T.drive.mapFound(this.#simulator.boxes.length) : T.drive.mapOnScreen;
+    } catch (error) {
+      if (!isAbort(error)) throw error;
+      this.#mapStatus.textContent = T.drive.mapStopped;
+    } finally {
+      this.#scan = null;
+      this.#showScanning(false);
+      await this.#hub.stop();
+    }
+  }
+
+  #showScanning(scanning) {
+    this.#scanButton.textContent = scanning ? `■ ${T.drive.mapStop}` : `🗺️ ${T.drive.mapScan}`;
+  }
+
+  #clearMap() {
+    this.stop();
+    this.#onFreePlay();
+    this.#simulator.setBoxes([]);
+    this.#simulator.showSightings([]);
+    this.#mapStatus.textContent = T.drive.mapCleared;
   }
 
   #pianoKey(note) {
@@ -215,6 +302,7 @@ export class DriveView {
 
   /** Drives as the newest pressed arrow says; with the eyes on, not forwards into an obstacle. */
   #applyDrive() {
+    if (this.#scan) return; // the radar is turning the robot
     const direction = this.#held.at(-1);
     const braking = this.#eyesOn && this.#blocked && direction?.id === 'forward';
     const [left, right] = direction && !braking ? direction.wheels : [0, 0];
@@ -235,7 +323,7 @@ export class DriveView {
     this.#eyesWatching = true;
     while (this.#eyesOn) {
       const showing = !document.hidden && !this.element.closest('[hidden]');
-      if (showing) this.#seen(await this.#hub.look());
+      if (showing && !this.#scan) this.#seen(await this.#hub.look());
       await sleep(EYES_POLL_MS);
     }
     this.#eyesWatching = false;

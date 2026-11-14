@@ -120,8 +120,8 @@ button {
   font-size: 1.35rem;
 }
 
-/* Five tabs need the icon above the name where the row is short */
-@media (max-width: 560px), (min-width: 980px) and (max-width: 1279px) {
+/* Six tabs need the icon above the name where the row is short */
+@media (min-width: 561px) and (max-width: 700px), (min-width: 980px) and (max-width: 1439px) {
   .tab {
     flex-direction: column;
     gap: 0;
@@ -130,14 +130,18 @@ button {
   }
 }
 
+/* On a phone they make two rows of three */
 @media (max-width: 560px) {
   .tabs {
+    flex-wrap: wrap;
     gap: 2px;
     padding: 4px;
   }
 
   .tab {
-    font-size: 0.78rem;
+    flex-basis: 30%;
+    min-height: 44px;
+    font-size: 0.9rem;
   }
 }
 
@@ -149,7 +153,7 @@ button {
   .tabs {
     flex: 1 1 0;
     order: 0;
-    max-width: 680px;
+    max-width: 760px;
     margin-inline: auto;
   }
 }

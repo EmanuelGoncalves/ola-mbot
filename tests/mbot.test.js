@@ -49,3 +49,26 @@ test('mbot: the eyes report the distance and whether it is close', async () => {
   };
   equal(await mbot.look(), { blocked: true, cm: 9.5 });
 });
+
+test('mbot: two looks at the same time each get their own answer', async () => {
+  const { link, mbot } = robot();
+  const asked = [];
+  link.send = async (bytes) => asked.push(bytes[3]);
+  const looks = [mbot.readDistance(), mbot.readDistance()];
+  await Promise.resolve();
+  // Answer the second question first.
+  for (const [index, cm] of [[asked[1], 30], [asked[0], 12]]) {
+    const reply = new Uint8Array(10);
+    reply.set([0xff, 0x55, index, 2]);
+    new DataView(reply.buffer).setFloat32(4, cm, true);
+    reply.set([0x0d, 0x0a], 8);
+    link.dispatchEvent(new CustomEvent('data', { detail: reply }));
+  }
+  equal(await Promise.all(looks), [12, 30]);
+});
+
+test('mbot: a radar spin runs the wheels in opposite ways, then stops', async () => {
+  const { link, mbot } = robot();
+  await mbot.rotate(30, 1);
+  equal(link.sent, [[...wheelsPacket(150, -150)], [...wheelsPacket(0, 0)]]);
+});

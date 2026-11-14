@@ -2,6 +2,7 @@ import { el } from '../dom.js';
 import { BluetoothLink } from '../robot/bluetooth.js';
 import { MBot } from '../robot/mbot.js';
 import { colorById, noteById } from '../robot/palette.js';
+import { measureStep, sweep } from '../robot/radar.js';
 import { saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -10,6 +11,8 @@ const State = { IDLE: 'idle', CONNECTING: 'connecting', CONNECTED: 'connected', 
 const CHOOSER_CLOSED = 'NotFoundError';
 const NOT_ALLOWED = 'SecurityError';
 const HELLO_NOTE_MS = 200;
+/** A measured step shorter than this part of a square is a bad measurement. */
+const SHORTEST_STEP = 0.2;
 
 /** Closing the chooser is not a failure; a page that may not use Bluetooth gets the simulator note. */
 const FAILURE_STATE = { [CHOOSER_CLOSED]: State.IDLE, [NOT_ALLOWED]: State.BLOCKED };
@@ -25,6 +28,9 @@ export class Connection {
   #test = null;
   /** Why the last connection failed, for a grown-up to read. */
   #failure = '';
+  /** The tuning sliders by name: `{ input, readout, format }`. */
+  #sliders = {};
+  #fitReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
   #body = el('div', { class: 'dialog-body' });
 
   constructor({ hub, tuning, onOpen }) {
@@ -137,8 +143,16 @@ export class Connection {
       { class: 'fold' },
       el('summary', { text: T.connection.tuningTitle }),
       el('p', { class: 'hint', text: T.connection.tuningIntro }),
-      this.#slider('stepMs', T.connection.stepTime, T.connection.testStep, (signal) => this.#hub.move(1, signal)),
-      this.#slider('quarterTurnMs', T.connection.turnTime, T.connection.testTurn, (signal) => this.#hub.turn(1, signal)),
+      this.#slider('cellCm', T.connection.cellSize, T.connection.centimetres),
+      this.#slider('stepMs', T.connection.stepTime, T.connection.milliseconds, T.connection.testStep, (signal) => this.#hub.move(1, signal)),
+      el('p', { class: 'hint', text: T.connection.fitIntro }),
+      this.#testButton(`📏 ${T.connection.fitStep}`, (signal) => this.#fitStep(signal)),
+      this.#fitReport,
+      this.#slider('quarterTurnMs', T.connection.turnTime, T.connection.milliseconds, T.connection.testTurn, (signal) => this.#hub.turn(1, signal)),
+      el('p', { class: 'hint', text: T.connection.scanIntro }),
+      this.#slider('scanStepMs', T.connection.scanTime, T.connection.milliseconds, T.connection.testScan, (signal) =>
+        sweep(this.#hub, { stepMs: this.#tuning.scanStepMs, signal }),
+      ),
       el('p', { class: 'hint', text: T.connection.flipIntro }),
       this.#flip('flipDrive', T.connection.flipDrive),
       this.#flip('flipTurn', T.connection.flipTurn),
@@ -160,27 +174,47 @@ export class Connection {
     return el('label', { class: 'tuning-check', for: id }, input, label);
   }
 
-  #slider(name, label, testLabel, test) {
+  /** A slider for one tuning value, shown with `format`, and a button to try it out if there is a `test`. */
+  #slider(name, label, format, testLabel, test) {
     const id = `tuning-${name}`;
-    const readout = el('output', { for: id, text: T.connection.milliseconds(this.#tuning[name]) });
+    const readout = el('output', { for: id, text: format(this.#tuning[name]) });
     const input = el('input', {
       id,
       type: 'range',
       ...TUNING_LIMITS[name],
       value: this.#tuning[name],
-      onInput: () => {
-        this.#tuning[name] = Number(input.value);
-        readout.textContent = T.connection.milliseconds(this.#tuning[name]);
-        saveTuning(this.#tuning);
-      },
+      onInput: () => this.#set(name, Number(input.value)),
     });
-    return el(
-      'div',
-      { class: 'tuning-row' },
-      el('label', { for: id }, label, ' ', readout),
-      input,
-      el('button', { class: 'button', type: 'button', onClick: () => this.#runTest(test) }, testLabel),
-    );
+    this.#sliders[name] = { input, readout, format };
+    return el('div', { class: 'tuning-row' }, el('label', { for: id }, label, ' ', readout), input, test && this.#testButton(testLabel, test));
+  }
+
+  #testButton(label, test) {
+    return el('button', { class: 'button', type: 'button', onClick: () => this.#runTest(test) }, label);
+  }
+
+  /** Changes a tuning value, saves it and shows it on its slider. */
+  #set(name, value) {
+    const { input, readout, format } = this.#sliders[name];
+    this.#tuning[name] = value;
+    input.value = value;
+    readout.textContent = format(value);
+    saveTuning(this.#tuning);
+  }
+
+  /** Lets the mBot measure its own step with its eyes, and sets the step time from it. */
+  async #fitStep(signal) {
+    const report = (text) => {
+      this.#fitReport.textContent = text;
+      this.#fitReport.hidden = false;
+    };
+    if (!this.#hub.connected) return report(T.connection.fitNeedsRobot);
+    const squares = await measureStep(this.#hub, { signal });
+    if (squares === null || squares < SHORTEST_STEP) return report(T.connection.fitFailed);
+    const { min, max, step } = TUNING_LIMITS.stepMs;
+    const fitted = Math.round(this.#tuning.stepMs / squares / step) * step;
+    this.#set('stepMs', Math.max(min, Math.min(max, fitted)));
+    report(T.connection.fitDone(Math.round(squares * this.#tuning.cellCm), this.#tuning.stepMs));
   }
 
   /** Runs one test move at a time; closing the dialog stops it. */

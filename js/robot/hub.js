@@ -1,4 +1,8 @@
 import { isAbort } from '../timing.js';
+import { OUT_OF_SIGHT_CM } from './mbot.js';
+
+/** About how far the mBot's eyes sit in front of the point it turns around. */
+const EYES_AHEAD_CM = 10;
 
 /**
  * One robot for the rest of the app: every command goes to the robot on screen
@@ -6,10 +10,12 @@ import { isAbort } from '../timing.js';
  */
 export class RobotHub {
   #simulator;
+  #tuning;
   #mbot = null;
 
-  constructor(simulator) {
+  constructor(simulator, tuning) {
     this.#simulator = simulator;
+    this.#tuning = tuning;
   }
 
   get connected() {
@@ -30,6 +36,10 @@ export class RobotHub {
 
   turn(quarters, signal) {
     return this.#both((robot) => robot.turn(quarters, signal));
+  }
+
+  rotate(degrees, ms, signal) {
+    return this.#both((robot) => robot.rotate(degrees, ms, signal));
   }
 
   moveUntilObstacle(signal) {
@@ -66,6 +76,16 @@ export class RobotHub {
       }
     }
     return { blocked: this.#simulator.obstacleAhead(), cm: null };
+  }
+
+  /**
+   * Distance in squares from the robot's centre to what its eyes see.
+   * With a real robot connected it is the real distance, or null when it sees nothing.
+   */
+  async range() {
+    if (!this.#mbot) return this.#simulator.rangeAhead();
+    const cm = await this.#mbot.readDistance().catch(() => null);
+    return cm > 0 && cm < OUT_OF_SIGHT_CM ? (cm + EYES_AHEAD_CM) / this.#tuning.cellCm : null;
   }
 
   async obstacleAhead() {

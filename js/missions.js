@@ -98,13 +98,18 @@ export const MISSIONS = [
   },
 ];
 
-/** Keeps the mission being played and the stars already earned. Fires `change`. */
+/** Keeps the mission or school exercise being played and the stars already earned. Fires `change`. */
 export class MissionBoard extends EventTarget {
   active = null;
   #stars = new Set(load('stars', []));
 
   get starCount() {
-    return MISSIONS.filter((mission) => this.#stars.has(mission.id)).length;
+    return this.starsIn(MISSIONS);
+  }
+
+  /** How many of these missions or exercises have their star. */
+  starsIn(missions) {
+    return missions.filter((mission) => this.#stars.has(mission.id)).length;
   }
 
   hasStar(mission) {

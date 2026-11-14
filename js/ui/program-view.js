@@ -17,6 +17,7 @@ export class ProgramView {
   #editor = new ProgramEditor(this.#program);
   #hub;
   #simulator;
+  #tuning;
   #board;
   #tutorial;
   #stage;
@@ -31,13 +32,14 @@ export class ProgramView {
   #runButton = el('button', { class: 'button button-go button-big', type: 'button', onClick: () => this.run() }, '▶ ', T.program.run);
   #stopButton = el('button', { class: 'button button-stop button-big', type: 'button', hidden: true, onClick: () => this.stop() }, '■ ', T.program.stop);
   #homeButton = el('button', { class: 'button', type: 'button', onClick: () => this.#simulator.reset() }, '🏠 ', T.program.home);
-  #matHint = el('p', { class: 'hint', text: T.program.matHint });
+  #matHint = el('p', { class: 'hint' });
   #stagePanel;
   #editPanels;
 
-  constructor({ hub, simulator, board, tutorial, onPlayLesson, onShowMissions }) {
+  constructor({ hub, simulator, tuning, board, tutorial, onPlayLesson, onShowMissions, onShowMore }) {
     this.#hub = hub;
     this.#simulator = simulator;
+    this.#tuning = tuning;
     this.#board = board;
     this.#tutorial = tutorial;
     this.#stage = new StageView(simulator, T.tabs.program);
@@ -95,8 +97,14 @@ export class ProgramView {
       if (this.#slot === FREE_PLAY) save('boxes', simulator.boxes);
     });
     simulator.addEventListener('bump', () => this.#say(T.program.bump));
-    board.addEventListener('change', () => this.#showActivity(onShowMissions));
-    tutorial.addEventListener('change', () => this.#showActivity(onShowMissions));
+    board.addEventListener('change', () => this.#showActivity(onShowMore));
+    tutorial.addEventListener('change', () => this.#showActivity(onShowMore));
+    this.showScale();
+  }
+
+  /** Says how big a square of the mat is on the floor. */
+  showScale() {
+    this.#matHint.textContent = `${T.program.matHint} ${T.program.scale(this.#tuning.cellCm)}`;
   }
 
   get running() {
@@ -148,10 +156,10 @@ export class ProgramView {
       this.#say(`${T.program.done} 🎉`);
     } else if (mission.check(this.#program.all(), this.#simulator)) {
       this.#board.award(mission);
-      this.#say(`${T.mission.done} ⭐`);
+      this.#say(`${wordsFor(mission).done} ⭐`);
       celebrate();
     } else {
-      this.#say(T.mission.retry);
+      this.#say(wordsFor(mission).retry);
     }
   }
 
@@ -196,7 +204,7 @@ export class ProgramView {
   }
 
   /** Follows the lesson or mission being played. */
-  #showActivity(onShowMissions) {
+  #showActivity(onShowMore) {
     const lesson = this.#tutorial.active;
     const mission = this.#board.active;
     const slot = lesson ? `lesson:${lesson.id}` : (mission?.id ?? FREE_PLAY);
@@ -204,34 +212,41 @@ export class ProgramView {
       this.stop();
       this.#slot = slot;
       this.#load();
-      this.#say(lesson ? T.learn.ready : mission ? mission.goal : T.program.welcome);
+      this.#say(lesson ? T.learn.ready : mission?.subject ? T.school.ready : mission ? mission.goal : T.program.welcome);
     }
     this.element.dataset.mode = lesson ? 'lesson' : mission ? 'mission' : FREE_PLAY;
     this.#stage.editable = !this.running && !this.#activity;
     this.#matHint.hidden = Boolean(this.#activity);
     this.#missionBanner.hidden = !mission || Boolean(lesson);
-    if (mission) this.#drawMissionBanner(mission, onShowMissions);
+    if (mission) this.#drawMissionBanner(mission, onShowMore);
   }
 
-  #drawMissionBanner(mission, onShowMissions) {
+  #drawMissionBanner(mission, onShowMore) {
     const earned = this.#board.hasStar(mission);
+    const words = wordsFor(mission);
     this.#missionBanner.replaceChildren(
       el(
         'div',
         { class: 'mission-banner-text' },
-        el('p', { class: 'mission-banner-label', text: `${mission.icon} ${T.mission.label}${earned ? ' ⭐' : ''}` }),
+        el('p', { class: 'mission-banner-label', text: `${mission.icon} ${mission.label ?? T.mission.label}${earned ? ' ⭐' : ''}` }),
         el('h3', { text: mission.title }),
+        mission.text && el('p', { class: 'mission-story', text: mission.text }),
         el('p', { text: mission.goal }),
       ),
       el(
         'div',
         { class: 'row' },
         el('button', { class: 'button', type: 'button', onClick: () => this.#say(mission.hint) }, '💡 ', T.mission.hint),
-        earned && el('button', { class: 'button', type: 'button', onClick: onShowMissions }, T.mission.more),
-        el('button', { class: 'button', type: 'button', onClick: () => this.#board.leave() }, '✕ ', T.mission.leave),
+        earned && el('button', { class: 'button', type: 'button', onClick: () => onShowMore(mission) }, words.more),
+        el('button', { class: 'button', type: 'button', onClick: () => this.#board.leave() }, '✕ ', words.leave),
       ),
     );
   }
+}
+
+/** A school exercise has its own words for what a mission says. */
+function wordsFor(mission) {
+  return mission.subject ? T.school : T.mission;
 }
 
 /** The boxes the child left on the free-play mat. */

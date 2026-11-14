@@ -34,6 +34,36 @@
   opacity: 0.45;
 }
 
+/* A square with a word or a number, for the school exercises */
+.stage-sign {
+  fill: var(--surface);
+  stroke: var(--brand);
+  stroke-width: 4;
+}
+
+.stage-sign-text {
+  fill: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* What the radar saw: a ray from the robot to each thing */
+.stage-ray {
+  stroke: var(--stop);
+  stroke-width: 3;
+  stroke-dasharray: 4 10;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.stage-echo {
+  fill: var(--stop);
+  stroke: var(--surface);
+  stroke-width: 3;
+}
+
 .stage-star {
   fill: var(--star);
   stroke: var(--star-edge);

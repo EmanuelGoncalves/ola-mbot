@@ -11,10 +11,11 @@ const ROBOT_RADIUS = 0.34;
 const BUMP_DISTANCE = 0.18;
 const TRAIL_SPACING = 0.1;
 const TRAIL_LIMIT = 800;
+const RAY_STEP = 0.05;
 
 /**
  * The robot on screen. It follows the same commands as the real mBot.
- * Events: `change` (pose, lights or trail), `world` (boxes or star), `bump`, `note`.
+ * Events: `change` (pose, lights or trail), `world` (boxes, star or signs), `sightings`, `bump`, `note`.
  */
 export class Simulator extends EventTarget {
   pose = { ...WORLD.start };
@@ -22,8 +23,13 @@ export class Simulator extends EventTarget {
   trail = [];
   obstacles = new Set();
   goal = null;
+  /** Squares with a word or a number on them: `[{ x, y, text }]`. */
+  signs = [];
+  /** What the radar saw: `[{ from, to }]`, both `{ x, y }` in squares. */
+  sightings = [];
   bumps = 0;
   stepsMoved = 0;
+  notesPlayed = 0;
 
   #tuning;
   #beeper;
@@ -44,27 +50,37 @@ export class Simulator extends EventTarget {
     this.trail = [{ x: this.pose.x, y: this.pose.y }];
     this.bumps = 0;
     this.stepsMoved = 0;
+    this.notesPlayed = 0;
     this.#wheels = { left: 0, right: 0 };
     this.#changed();
   }
 
-  /** Sets the boxes (`[[x, y], …]`) and the star (`{x, y}` or null). */
-  setWorld({ obstacles = [], goal = null } = {}) {
+  /** Sets the boxes (`[[x, y], …]`), the star (`{x, y}` or null) and the signs (`[[x, y, text], …]`). */
+  setWorld({ obstacles = [], goal = null, signs = [] } = {}) {
     this.obstacles = new Set(obstacles.map(([x, y]) => cellKey(x, y)));
     this.goal = goal;
+    this.signs = signs.map(([x, y, text]) => ({ x, y, text }));
     this.dispatchEvent(new Event('world'));
+    this.showSightings([]);
     this.reset();
   }
 
-  /** Adds or removes a box; never on the start cell or where the robot is standing. */
+  /** Adds or removes a box. */
   toggleObstacle(x, y) {
-    if (!inBounds(x, y) || sameCell({ x, y }, WORLD.start)) return;
-    const key = cellKey(x, y);
-    if (!this.obstacles.delete(key)) {
-      this.obstacles.add(key);
-      if (!this.#fits(this.pose.x, this.pose.y)) this.obstacles.delete(key);
-    }
+    if (!this.obstacles.delete(cellKey(x, y))) this.#addBox(x, y);
     this.dispatchEvent(new Event('world'));
+  }
+
+  /** Replaces the boxes, as after a radar scan; the robot stays where it is. */
+  setBoxes(cells) {
+    this.obstacles = new Set();
+    for (const [x, y] of cells) this.#addBox(x, y);
+    this.dispatchEvent(new Event('world'));
+  }
+
+  showSightings(sightings) {
+    this.sightings = sightings;
+    this.dispatchEvent(new Event('sightings'));
   }
 
   /** The boxes on the mat, as `[[x, y], …]`. */
@@ -84,6 +100,11 @@ export class Simulator extends EventTarget {
     return sameCell(this.cell, WORLD.start);
   }
 
+  /** The text of the sign the robot is standing on, or null. */
+  signHere() {
+    return this.signs.find((sign) => sameCell(sign, this.cell))?.text ?? null;
+  }
+
   isBlocked(x, y) {
     return !inBounds(x, y) || this.obstacles.has(cellKey(x, y));
   }
@@ -96,10 +117,15 @@ export class Simulator extends EventTarget {
     }
   }
 
-  async turn(quarters, signal) {
+  turn(quarters, signal) {
+    return this.rotate(90 * quarters, this.#tuning.quarterTurnMs * Math.abs(quarters), signal);
+  }
+
+  /** Spins on the spot by `degrees` (clockwise when positive) during `ms`. */
+  async rotate(degrees, ms, signal) {
     const from = this.pose.heading;
-    await animate(this.#tuning.quarterTurnMs * Math.abs(quarters), signal, (progress) => {
-      this.pose.heading = from + 90 * quarters * progress;
+    await animate(ms, signal, (progress) => {
+      this.pose.heading = from + degrees * progress;
       this.#changed();
     });
     this.pose.heading = normaliseDegrees(this.pose.heading);
@@ -117,6 +143,7 @@ export class Simulator extends EventTarget {
   }
 
   playTone(hz, ms) {
+    this.notesPlayed += 1;
     this.#beeper.play(hz, ms);
     this.dispatchEvent(new Event('note'));
   }
@@ -125,6 +152,19 @@ export class Simulator extends EventTarget {
   obstacleAhead() {
     const [dx, dy] = this.#forward(1);
     return this.isBlocked(Math.round(this.pose.x + dx), Math.round(this.pose.y + dy));
+  }
+
+  /** Distance in squares from the robot's centre to the box or the edge of the mat straight ahead. */
+  rangeAhead() {
+    const [dx, dy] = this.#forward(RAY_STEP);
+    let { x, y } = this.pose;
+    let range = 0;
+    while (!this.isBlocked(Math.round(x), Math.round(y))) {
+      x += dx;
+      y += dy;
+      range += RAY_STEP;
+    }
+    return range;
   }
 
   /** Free driving with wheel speeds, as in `MBot.drive`. */
@@ -138,6 +178,14 @@ export class Simulator extends EventTarget {
   }
 
   // --- Internals ---
+
+  /** A box never goes on the start cell, outside the mat or where the robot is standing. */
+  #addBox(x, y) {
+    if (!inBounds(x, y) || sameCell({ x, y }, WORLD.start)) return;
+    const key = cellKey(x, y);
+    this.obstacles.add(key);
+    if (!this.#fits(this.pose.x, this.pose.y)) this.obstacles.delete(key);
+  }
 
   async #step(direction, signal) {
     const { x, y } = this.pose;

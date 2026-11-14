@@ -14,6 +14,7 @@ import { MissionsView } from './ui/missions-view.js';
 import { ProgramView } from './ui/program-view.js';
 import { RemoteView } from './ui/remote-view.js';
 import { createRobotPortrait } from './ui/robot-figure.js';
+import { SchoolView } from './ui/school-view.js';
 
 /** Tab ids double as the page's #hash, so a tab can be bookmarked. */
 const TABS = [
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'programar', icon: '🧩', label: T.tabs.program },
   { id: 'conduzir', icon: '🕹️', label: T.tabs.drive },
   { id: 'missoes', icon: '⭐', label: T.tabs.missions },
+  { id: 'escola', icon: '🎒', label: T.tabs.school },
   { id: 'comando', icon: '📡', label: T.tabs.remote },
 ];
 
@@ -31,18 +33,25 @@ function start() {
   const beeper = new Beeper();
   beeper.enabled = load('sound', true);
   const simulator = new Simulator({ tuning, beeper });
-  const hub = new RobotHub(simulator);
+  const hub = new RobotHub(simulator, tuning);
   const board = new MissionBoard();
   const tutorial = new Tutorial();
 
   const showMissions = () => showTab('missoes');
-  const programView = new ProgramView({ hub, simulator, board, tutorial, onPlayLesson: playLesson, onShowMissions: showMissions });
-  const driveView = new DriveView({ hub, simulator });
+  /** Goes back to the list a mission or a school exercise came from. */
+  const showMore = (mission) => showTab(mission.subject ? 'escola' : 'missoes');
+  const freePlay = () => {
+    board.leave();
+    tutorial.leave();
+  };
+  const programView = new ProgramView({ hub, simulator, tuning, board, tutorial, onPlayLesson: playLesson, onShowMissions: showMissions, onShowMore: showMore });
+  const driveView = new DriveView({ hub, simulator, tuning, onFreePlay: freePlay });
   const views = {
     aprender: new LearnView({ tutorial, onPlay: playLesson, onShowMissions: showMissions }).element,
     programar: programView.element,
     conduzir: driveView.element,
     missoes: new MissionsView({ board, onPlay: playMission }).element,
+    escola: new SchoolView({ board, onPlay: playMission }).element,
     comando: new RemoteView().element,
   };
 
@@ -51,6 +60,11 @@ function start() {
     driveView.stop();
   };
   const connection = new Connection({ hub, tuning, onOpen: stopRobot });
+  // The size of a square may have changed in the tuning.
+  connection.dialog.addEventListener('close', () => {
+    programView.showScale();
+    driveView.showScale();
+  });
 
   const tabButtons = TABS.map((tab) =>
     el(
@@ -80,7 +94,7 @@ function start() {
     window.scrollTo(0, 0);
   }
 
-  /** A mission and a lesson are never open together. */
+  /** Opens a mission or a school exercise; neither is ever open together with a lesson. */
   function playMission(mission) {
     tutorial.leave();
     board.start(mission);

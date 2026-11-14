@@ -468,6 +468,16 @@
   font-size: 0.95rem;
 }
 
+/* A short story to read before the question */
+.mission-story {
+  padding: 8px 12px;
+  border-left: 5px solid var(--brand);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
 .mission-banner-label {
   color: var(--ink-soft);
   font-size: 0.9rem;
