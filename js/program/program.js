@@ -40,6 +40,19 @@ export class Program extends EventTarget {
     this.#changed();
   }
 
+  /**
+   * Puts a copy of a block right after it, with its choice and, for a container, a copy of
+   * everything inside. Returns the copy.
+   */
+  duplicate(id) {
+    const found = this.locate(id);
+    if (!found) return null;
+    const [copy] = Program.revive(this.serialize([found.block]));
+    found.list.splice(found.index + 1, 0, copy);
+    this.#changed();
+    return copy;
+  }
+
   setValue(id, value) {
     const found = this.locate(id);
     if (!found) return;

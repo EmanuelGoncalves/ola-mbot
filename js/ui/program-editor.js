@@ -185,6 +185,7 @@ export class ProgramEditor extends EventTarget {
         { class: 'tools' },
         action('up', '⬆️', T.program.moveUp, () => this.#program.moveUp(block.id)),
         action('down', '⬇️', T.program.moveDown, () => this.#program.moveDown(block.id)),
+        action('copy', '📑', T.program.duplicate, () => this.#duplicate(block.id)),
         action('remove', '🗑️', T.program.remove, () => this.#remove(block.id)),
       ),
     );
@@ -198,6 +199,14 @@ export class ProgramEditor extends EventTarget {
   #setCursor(parentId, index) {
     this.#selectedId = null;
     this.#cursor = { parentId, index };
+    this.#render();
+  }
+
+  /** Copies a block, with what is inside it, and opens the copy: it is the one to change next. */
+  #duplicate(id) {
+    const copy = this.#program.duplicate(id);
+    if (!copy) return;
+    this.#selectedId = copy.id;
     this.#render();
   }
 

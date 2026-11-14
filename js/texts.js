@@ -31,6 +31,7 @@ export const T = {
     slotInside: 'Pôr blocos cá dentro',
     moveUp: 'Subir',
     moveDown: 'Descer',
+    duplicate: 'Duplicar',
     remove: 'Tirar',
     run: 'Começar',
     stop: 'Parar',

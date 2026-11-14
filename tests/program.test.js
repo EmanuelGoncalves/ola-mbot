@@ -61,6 +61,29 @@ test('program: removing a container removes its contents', () => {
   equal(types(program.blocks), ['forward', 'lights']);
 });
 
+test('program: a block is duplicated right after itself, with its choice', () => {
+  const { program, forward } = sample();
+  program.setValue(forward.id, 3);
+  const copy = program.duplicate(forward.id);
+  equal(types(program.blocks), ['forward', 'forward', ['repeat', ['note']], 'lights']);
+  equal(copy.value, 3);
+  ok(copy.id !== forward.id, 'the copy has the same id');
+});
+
+test('program: a container is duplicated with a copy of everything inside', () => {
+  const { program, repeat, note } = sample();
+  const copy = program.duplicate(repeat.id);
+  equal(types(program.blocks), ['forward', ['repeat', ['note']], ['repeat', ['note']], 'lights']);
+  program.setValue(copy.body[0].id, 'sol');
+  equal(note.value, 'do', 'changing the copy changed the original:');
+});
+
+test('program: a block inside a container is duplicated inside it', () => {
+  const { program, note } = sample();
+  program.duplicate(note.id);
+  equal(types(program.blocks), ['forward', ['repeat', ['note', 'note']], 'lights']);
+});
+
 test('program: survives saving and loading', () => {
   const { program, forward } = sample();
   program.setValue(forward.id, 3);
