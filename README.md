@@ -16,7 +16,7 @@ It has six tabs:
 | --- | --- |
 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
-| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, follow the black line of the printed circuit, map the room with a 360° radar turn, switch the lights, play the buzzer like a piano, or tap one of the jingles. Its **Explorar** part lets the robot find the way out of the room by itself. |
+| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, follow the black line of the printed circuit, map the room with a 360° radar turn, switch the lights or start a light show, play the buzzer like a piano, or tap one of the jingles. Its **Explorar** part lets the robot find the way out of the room by itself. |
 | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | **Comando** | The infrared remote that comes in the box, button by button. |
@@ -140,6 +140,7 @@ js/tutorial.js        the tutorial's lessons, step by step
 js/missions.js        the missions and the star board
 js/school.js          the school exercises, by subject, year and level
 js/jingles.js         short tunes for the buzzer (also the «Tocar a música» block), and their player
+js/light-shows.js     colour sequences for the two lights (also the «Espetáculo de luzes» block), the child's own show, and their player
 js/remote-guide.js    what each remote button does
 js/program/           block catalogue, program model, interpreter
 js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar, explorer and its pretend rooms

@@ -1,4 +1,5 @@
 import { JINGLES, playJingle } from '../jingles.js';
+import { playShow, showById } from '../light-shows.js';
 import { colorById, noteById } from '../robot/palette.js';
 import { sleep } from '../timing.js';
 
@@ -33,6 +34,12 @@ const EXECUTE = {
 
   async lightsOff(block, { robot, signal, wait }) {
     await robot.setLights(null);
+    await wait(BEAT_MS, signal);
+  },
+
+  /** A whole light show, colour after colour; the program goes on when it ends. */
+  async lightShow(block, { robot, signal, wait }) {
+    await playShow(showById(block.value), robot, { signal, wait });
     await wait(BEAT_MS, signal);
   },
 

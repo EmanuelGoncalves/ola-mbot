@@ -1,7 +1,9 @@
 import { el } from '../dom.js';
+import { MY_SHOW_ID } from '../light-shows.js';
 import { BLOCKS, CATEGORIES, createBlock, valueLabel } from '../program/blocks.js';
 import { T } from '../texts.js';
 import { sideBySide } from './layout.js';
+import { createShowEditor } from './show-editor.js';
 
 /** The icon and name of a block, shared by the palette and the program. */
 function blockFace(type) {
@@ -42,6 +44,8 @@ export class ProgramEditor extends EventTarget {
   #program;
   #cursor = { parentId: null, index: 0 };
   #selectedId = null;
+  /** Shown inside a light-show block set to the child's own show. */
+  #showEditor = createShowEditor();
   #runningId = null;
 
   constructor(program) {
@@ -180,6 +184,7 @@ export class ProgramEditor extends EventTarget {
             ),
           ),
         ),
+      block.type === 'lightShow' && block.value === MY_SHOW_ID && this.#showEditor,
       el(
         'div',
         { class: 'tools' },

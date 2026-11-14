@@ -121,6 +121,10 @@ export const T = {
     speeds: { slow: 'Devagar', normal: 'Normal', fast: 'Rápido' },
     lights: 'Luzes',
     lightsOff: 'Apagar as luzes',
+    shows: 'Espetáculos de luzes',
+    showsHint: 'Toca num espetáculo e as luzes do robô mudam de cor sozinhas, sem parar. Toca outra vez para acabar.',
+    showMine: 'O meu espetáculo',
+    showMake: 'Criar o meu espetáculo',
     eyes: 'Olhos do robô',
     eyesToggle: 'Parar antes de bater',
     eyesOff: 'Os olhos estão desligados.',
@@ -161,6 +165,16 @@ export const T = {
     home: 'Voltar ao início',
     modesLabel: 'O que fazer com o robô',
     modes: { drive: 'Conduzir', explore: 'Explorar' },
+  },
+
+  show: {
+    row: 'As cores do meu espetáculo',
+    hint: 'Toca numa cor para a juntares ao fim. Toca numa cor do teu espetáculo para a tirares.',
+    empty: 'Ainda não tem cores.',
+    off: 'luzes apagadas',
+    add: (color) => `Juntar ${color}`,
+    remove: (color, step) => `Tirar ${color}, que é a cor número ${step}`,
+    clear: 'Tirar todas',
   },
 
   explore: {

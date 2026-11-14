@@ -222,6 +222,36 @@
   color: var(--stop);
 }
 
+/* The child's own light show: a row of colours, and the colours to add to it */
+.show-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.show-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 6px 8px;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-small);
+  list-style: none;
+}
+
+.show-row .show-dot {
+  width: 38px;
+  height: 38px;
+  font-size: 1.05rem;
+}
+
+.show-dot:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .jingles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

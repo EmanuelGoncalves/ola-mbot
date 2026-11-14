@@ -1,4 +1,5 @@
 import { JINGLES } from '../jingles.js';
+import { MY_SHOW_ID, SHOWS } from '../light-shows.js';
 import { COLORS, NOTES } from '../robot/palette.js';
 
 export const CATEGORIES = [
@@ -61,6 +62,13 @@ export const BLOCKS = {
     category: 'lights',
     icon: '🌙',
     label: 'Apagar as luzes',
+  },
+  lightShow: {
+    category: 'lights',
+    icon: '🎆',
+    label: 'Espetáculo de luzes',
+    options: [...SHOWS.map((show) => ({ value: show.id, label: `${show.icon} ${show.name}` })), { value: MY_SHOW_ID, label: '⭐ O meu espetáculo' }],
+    defaultValue: SHOWS[0].id,
   },
   note: {
     category: 'sound',

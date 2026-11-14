@@ -1,5 +1,6 @@
 import { el } from '../dom.js';
 import { JINGLES, playJingle } from '../jingles.js';
+import { MY_SHOW_ID, playShow, showById, SHOWS } from '../light-shows.js';
 import { followLine, Line } from '../robot/line-follower.js';
 import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
@@ -9,6 +10,7 @@ import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
 import { ExploreView } from './explore-view.js';
 import { createRobotPortrait } from './robot-figure.js';
+import { createShowEditor } from './show-editor.js';
 import { StageView } from './stage-view.js';
 
 const SPEEDS = [
@@ -52,6 +54,9 @@ export class DriveView {
   #playing = null;
   #pianoKeys = new Map();
   #jingleButtons = new Map();
+  /** The light show going round, `{ id, abort, done }`, or null. */
+  #show = null;
+  #showButtons = new Map();
   /** "Parar antes de bater": the eyes stop the robot from driving into things. */
   #eyesOn = load('eyes', false);
   #eyesWatching = false;
@@ -136,11 +141,19 @@ export class DriveView {
                 type: 'button',
                 style: `background:${color.hex}`,
                 'aria-label': color.name,
-                onClick: () => hub.setLights(color),
+                onClick: () => this.#setLights(color),
               }),
             ),
-            el('button', { class: 'light-dot', type: 'button', 'aria-label': T.drive.lightsOff, onClick: () => hub.setLights(null) }, '🌙'),
+            el('button', { class: 'light-dot', type: 'button', 'aria-label': T.drive.lightsOff, onClick: () => this.#setLights(null) }, '🌙'),
           ),
+        ),
+        el(
+          'div',
+          { class: 'drive-group' },
+          el('h3', { text: T.drive.shows }),
+          el('p', { class: 'hint', text: T.drive.showsHint }),
+          el('div', { class: 'jingles' }, [...SHOWS, { id: MY_SHOW_ID, icon: '⭐', name: T.drive.showMine }].map((show) => this.#showButton(show))),
+          el('details', { class: 'fold' }, el('summary', { text: `✏️ ${T.drive.showMake}` }), createShowEditor()),
         ),
         el(
           'div',
@@ -194,6 +207,7 @@ export class DriveView {
     this.#explore.stop();
     this.#line?.abort();
     this.#scan?.abort();
+    this.#show?.abort.abort();
     this.#playing?.abort.abort();
     this.#hub.stop();
   }
@@ -331,6 +345,54 @@ export class DriveView {
     );
     this.#pianoKeys.set(note.id, key);
     return key;
+  }
+
+  /** One colour, or none, chosen by hand: the show going round, if any, ends first. */
+  async #setLights(color) {
+    const show = this.#show;
+    show?.abort.abort();
+    await show?.done;
+    this.#hub.setLights(color);
+  }
+
+  #showButton(show) {
+    const button = el(
+      'button',
+      { class: 'button jingle', type: 'button', 'aria-pressed': 'false', onClick: () => this.#toggleShow(show.id) },
+      el('span', { 'aria-hidden': 'true', text: show.icon }),
+      show.name,
+    );
+    this.#showButtons.set(show.id, button);
+    return button;
+  }
+
+  /** Starts a light show going round and round; tapping the one that is on stops it. */
+  async #toggleShow(id) {
+    const previous = this.#show;
+    previous?.abort.abort();
+    await previous?.done;
+    if (previous?.id === id || showById(id).steps.length === 0) return;
+    const abort = new AbortController();
+    this.#show = { id, abort, done: this.#loopShow(id, abort.signal) };
+    this.#markShow(id);
+  }
+
+  /** The child's own show is read again at every round, so that a change to it shows at once. */
+  async #loopShow(id, signal) {
+    try {
+      while (showById(id).steps.length > 0) await playShow(showById(id), this.#hub, { signal });
+    } catch (error) {
+      if (!isAbort(error)) throw error;
+    } finally {
+      if (this.#show?.abort.signal === signal) {
+        this.#show = null;
+        this.#markShow(null);
+      }
+    }
+  }
+
+  #markShow(id) {
+    for (const [show, button] of this.#showButtons) button.setAttribute('aria-pressed', String(show === id));
   }
 
   #jingleButton(jingle) {
