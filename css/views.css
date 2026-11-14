@@ -224,6 +224,13 @@
   line-height: 1;
 }
 
+/* Rounds of an exercise that draws new numbers: filled when got right */
+.round-dots {
+  color: var(--star-edge);
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+}
+
 .card-mark-empty {
   color: var(--ink-soft);
 }

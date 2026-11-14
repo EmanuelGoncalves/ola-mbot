@@ -98,10 +98,28 @@ export const MISSIONS = [
   },
 ];
 
-/** Keeps the mission or school exercise being played and the stars already earned. Fires `change`. */
+/**
+ * Keeps the mission or school exercise being played, the stars already earned and,
+ * for the exercises that draw new numbers every round, how many rounds were got right.
+ * Fires `change`. `random` and `store` can be replaced in tests.
+ */
 export class MissionBoard extends EventTarget {
   active = null;
-  #stars = new Set(load('stars', []));
+  /** The round being played was already got right; it does not count twice. */
+  roundSolved = false;
+  #random;
+  #store;
+  #stars;
+  #rounds;
+  #roundsMade = 0;
+
+  constructor({ random = Math.random, store = { load, save } } = {}) {
+    super();
+    this.#random = random;
+    this.#store = store;
+    this.#stars = new Set(store.load('stars', []));
+    this.#rounds = store.load('rounds', {});
+  }
 
   get starCount() {
     return this.starsIn(MISSIONS);
@@ -116,8 +134,20 @@ export class MissionBoard extends EventTarget {
     return this.#stars.has(mission.id);
   }
 
+  /** Rounds got right so far, up to the `rounds` the exercise asks for. */
+  roundsSolved(mission) {
+    return this.hasStar(mission) ? mission.rounds : Math.min(mission.rounds, this.#rounds[mission.id] ?? 0);
+  }
+
   start(mission) {
-    this.active = mission;
+    this.active = this.#round(mission);
+    this.#changed();
+  }
+
+  /** Draws new numbers for the exercise being played. */
+  nextRound() {
+    if (!this.active?.make) return;
+    this.active = this.#round(this.active);
     this.#changed();
   }
 
@@ -127,10 +157,26 @@ export class MissionBoard extends EventTarget {
     this.#changed();
   }
 
+  /**
+   * Counts a right answer and returns true when the star is earned: at once for a mission,
+   * after `rounds` different rounds for an exercise with new numbers every round.
+   */
   award(mission) {
-    this.#stars.add(mission.id);
-    save('stars', [...this.#stars]);
+    if (mission.make && !this.hasStar(mission)) {
+      if (!this.roundSolved) this.#rounds[mission.id] = this.roundsSolved(mission) + 1;
+      this.#store.save('rounds', this.#rounds);
+    }
+    this.roundSolved = true;
+    if (!mission.make || this.#rounds[mission.id] >= mission.rounds) this.#stars.add(mission.id);
+    this.#store.save('stars', [...this.#stars]);
     this.#changed();
+    return this.hasStar(mission);
+  }
+
+  /** An exercise with `make` gets its numbers here; `round` tells one round from the next. */
+  #round(mission) {
+    this.roundSolved = false;
+    return mission.make ? { ...mission, ...mission.make(this.#random), round: ++this.#roundsMade } : mission;
   }
 
   #changed() {

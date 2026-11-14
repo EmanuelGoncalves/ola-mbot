@@ -2,6 +2,7 @@ import { el } from '../dom.js';
 import { exercisesFor, exercisesOf, LEVELS, SUBJECTS, YEARS } from '../school.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
+import { roundDots } from './round-dots.js';
 
 /**
  * The "Escola" tab: Matemática and Português exercises by school year and level.
@@ -29,6 +30,7 @@ export class SchoolView {
         { class: 'view-intro' },
         el('h2', { text: T.school.title }),
         el('p', { text: T.school.intro }),
+        el('p', { class: 'hint', text: T.school.roundsHint }),
         el(
           'div',
           { class: 'row' },
@@ -79,7 +81,9 @@ export class SchoolView {
         el('span', { 'aria-hidden': 'true', text: exercise.icon }),
         earned
           ? el('span', { role: 'img', 'aria-label': T.school.earned, text: '⭐' })
-          : el('span', { class: 'card-mark-empty', 'aria-hidden': 'true', text: '☆' }),
+          : exercise.rounds
+            ? roundDots(this.#board.roundsSolved(exercise), exercise.rounds)
+            : el('span', { class: 'card-mark-empty', 'aria-hidden': 'true', text: '☆' }),
       ),
       el('h3', { text: `${number}. ${exercise.title}` }),
       el(

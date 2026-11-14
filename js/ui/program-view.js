@@ -7,6 +7,7 @@ import { isAbort } from '../timing.js';
 import { celebrate } from './celebrate.js';
 import { Coach } from './coach.js';
 import { createPalette, ProgramEditor } from './program-editor.js';
+import { roundDots } from './round-dots.js';
 import { StageView } from './stage-view.js';
 
 const FREE_PLAY = 'free';
@@ -89,7 +90,7 @@ export class ProgramView {
 
     this.#load();
     this.#program.addEventListener('change', () => {
-      if (!tutorial.active) save(`program:${this.#slot}`, this.#program.serialize());
+      if (!tutorial.active && !board.active?.make) save(`program:${this.#slot}`, this.#program.serialize());
       this.#messageAction.replaceChildren(); // an offer to undo is only good until the next change
     });
     simulator.addEventListener('world', () => {
@@ -155,9 +156,9 @@ export class ProgramView {
     if (!mission) {
       this.#say(`${T.program.done} 🎉`);
     } else if (mission.check(this.#program.all(), this.#simulator)) {
-      this.#board.award(mission);
-      this.#say(`${wordsFor(mission).done} ⭐`);
-      celebrate();
+      const starred = this.#board.award(mission);
+      this.#say(starred ? `${wordsFor(mission).done} ⭐` : T.school.roundDone(this.#board.roundsSolved(mission), mission.rounds));
+      if (starred) celebrate();
     } else {
       this.#say(wordsFor(mission).retry);
     }
@@ -197,7 +198,8 @@ export class ProgramView {
   /** Opens the program and the mat of the current slot. */
   #load() {
     const lesson = this.#tutorial.active;
-    const saved = lesson ? lesson.program : load(`program:${this.#slot}`, []);
+    // An exercise with new numbers every round starts from an empty program.
+    const saved = lesson ? lesson.program : this.#board.active?.make ? [] : load(`program:${this.#slot}`, []);
     this.#program.replace(Program.revive(saved));
     this.#editor.moveCursorToEnd();
     this.#simulator.setWorld(this.#activity ? this.#activity.world : { obstacles: savedBoxes() });
@@ -207,7 +209,7 @@ export class ProgramView {
   #showActivity(onShowMore) {
     const lesson = this.#tutorial.active;
     const mission = this.#board.active;
-    const slot = lesson ? `lesson:${lesson.id}` : (mission?.id ?? FREE_PLAY);
+    const slot = lesson ? `lesson:${lesson.id}` : mission?.round ? `${mission.id}:${mission.round}` : (mission?.id ?? FREE_PLAY);
     if (slot !== this.#slot) {
       this.stop();
       this.#slot = slot;
@@ -228,7 +230,12 @@ export class ProgramView {
       el(
         'div',
         { class: 'mission-banner-text' },
-        el('p', { class: 'mission-banner-label', text: `${mission.icon} ${mission.label ?? T.mission.label}${earned ? ' ⭐' : ''}` }),
+        el(
+          'p',
+          { class: 'mission-banner-label' },
+          `${mission.icon} ${mission.label ?? T.mission.label}${earned ? ' ⭐' : ''} `,
+          mission.rounds && roundDots(this.#board.roundsSolved(mission), mission.rounds),
+        ),
         el('h3', { text: mission.title }),
         el('div', { class: 'mission-ask' }, mission.text && el('p', { class: 'mission-story', text: mission.text }), el('p', { text: mission.goal })),
       ),
@@ -236,6 +243,9 @@ export class ProgramView {
         'div',
         { class: 'row' },
         el('button', { class: 'button', type: 'button', onClick: () => this.#say(mission.hint) }, '💡 ', T.mission.hint),
+        mission.make &&
+          this.#board.roundSolved &&
+          el('button', { class: 'button button-brand', type: 'button', onClick: () => this.#board.nextRound() }, '🎲 ', earned ? T.school.another : T.school.nextRound),
         earned && el('button', { class: 'button', type: 'button', onClick: () => onShowMore(mission) }, words.more),
         el('button', { class: 'button', type: 'button', onClick: () => this.#board.leave() }, '✕ ', words.leave),
       ),

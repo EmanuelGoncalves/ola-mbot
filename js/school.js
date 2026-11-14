@@ -25,6 +25,49 @@ const lit = (color) => (blocks, robot) => robot.lights === colorById(color).hex;
 const played = (notes) => (blocks, robot) => robot.notesPlayed === notes;
 const all = (...checks) => (blocks, robot) => checks.every((check) => check(blocks, robot));
 
+// For the exercises that draw new numbers every round. `random` is a function like Math.random.
+const between = (random, low, high) => low + Math.floor(random() * (high - low + 1));
+const pick = (random, list) => list[Math.floor(random() * list.length)];
+
+function shuffled(random, list) {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/** How many right answers, each with new numbers, earn the star of an exercise that has `make`. */
+const ROUNDS = 3;
+
+/** Squares for signs: spread out, and none below the robot, so each is reached by going up and then sideways. */
+const SIGN_SPOTS = [[1, 1], [3, 0], [5, 1], [0, 2], [3, 2], [4, 3], [3, 4], [5, 4], [0, 0]];
+
+/** The blocks that take the robot from the start to a square that is not below it. */
+function pathTo([x, y]) {
+  const up = WORLD.start.y - y;
+  const across = x - WORLD.start.x;
+  return [
+    ...(up > 0 ? [['forward', up]] : []),
+    ...(across !== 0 ? [[across > 0 ? 'turnRight' : 'turnLeft', 1], ['forward', Math.abs(across)]] : []),
+  ];
+}
+
+/**
+ * Three signs on random squares: the right `answer` and two of the `wrong` ones (never equal
+ * to it, to each other, or below 1). Returns the `world`, the `check` and a `solution`.
+ */
+function signQuiz(random, answer, wrong) {
+  const others = shuffled(random, [...new Set(wrong)].filter((value) => value !== answer && !(value < 1)));
+  const [right, second, third] = shuffled(random, SIGN_SPOTS);
+  return {
+    world: { signs: [[...right, String(answer)], [...second, String(others[0])], [...third, String(others[1])]] },
+    check: onSign(String(answer)),
+    solution: pathTo(right),
+  };
+}
+
 /** True when a «Repetir `times` vezes» holds a block for each of `wanted`, given as `[type, value]`. */
 const repeats = (times, wanted) => (blocks) =>
   blocks.some(
@@ -34,11 +77,29 @@ const repeats = (times, wanted) => (blocks) =>
       wanted.every(([type, value]) => block.body.some((inside) => inside.type === type && (value === undefined || inside.value === value))),
   );
 
+/** Words and their syllables, for clapping. */
+const SYLLABLES = [
+  ['sapato', ['sa', 'pa', 'to']],
+  ['bola', ['bo', 'la']],
+  ['janela', ['ja', 'ne', 'la']],
+  ['gato', ['ga', 'to']],
+  ['borboleta', ['bor', 'bo', 'le', 'ta']],
+  ['macaco', ['ma', 'ca', 'co']],
+  ['telefone', ['te', 'le', 'fo', 'ne']],
+  ['mesa', ['me', 'sa']],
+  ['cavalo', ['ca', 'va', 'lo']],
+  ['bicicleta', ['bi', 'ci', 'cle', 'ta']],
+];
+
 /**
  * Exercises are missions whose answer tells the robot what to do. The robot starts
  * on cell (1, 4), facing up. `text` is a short story to read first; `world.signs`
  * are squares with a word or a number (`[x, y, text]`); `solution` is one program
  * that solves it, in the compact form the tests use.
+ *
+ * An exercise with `make(random)` draws new numbers every round: `make` returns the
+ * `goal`, `hint`, `world`, `check` and `solution` of one round, and the star is earned
+ * after `rounds` right answers.
  */
 const EXERCISES = {
   math: {
@@ -46,43 +107,64 @@ const EXERCISES = {
       easy: [
         {
           id: 'mat-soma',
-          icon: '➕',
+          icon: '🧮',
           title: 'Somar',
-          goal: 'Quanto é 7 + 5? Leva o robô até ao quadrado com a resposta certa.',
-          hint: 'Começa no 7 e conta mais 5 pelos dedos. Depois faz o caminho até esse número.',
-          world: { signs: [[1, 1, '11'], [3, 2, '12'], [4, 4, '13']] },
-          check: onSign('12'),
-          solution: [['forward', 2], ['turnRight', 1], ['forward', 2]],
+          rounds: ROUNDS,
+          make(random) {
+            const a = between(random, 2, 9);
+            const b = between(random, 2, 9);
+            return {
+              goal: `Quanto é ${a} + ${b}? Leva o robô até ao quadrado com a resposta certa.`,
+              hint: `Começa no ${Math.max(a, b)} e conta mais ${Math.min(a, b)} pelos dedos. Depois faz o caminho até esse número.`,
+              ...signQuiz(random, a + b, [a + b - 1, a + b + 1, a + b - 2, a + b + 2]),
+            };
+          },
         },
         {
           id: 'mat-passos',
-          icon: '👣',
+          icon: '🦶',
           title: 'Passos contados',
-          goal: 'O robô quer andar 9 − 6 passos em frente. Quantos passos são? Faz o robô andar esse número de passos.',
-          hint: 'Tens 9 e tiras 6. No bloco «Andar em frente» podes escolher o número de passos.',
-          world: {},
-          check: ahead(3),
-          solution: [['forward', 3]],
+          rounds: ROUNDS,
+          make(random) {
+            const steps = between(random, 1, 4);
+            const taken = between(random, 2, 6);
+            return {
+              goal: `O robô quer andar ${steps + taken} − ${taken} passos em frente. Quantos passos são? Faz o robô andar esse número de passos.`,
+              hint: `Tens ${steps + taken} e tiras ${taken}. No bloco «Andar em frente» podes escolher o número de passos.`,
+              world: {},
+              check: ahead(steps),
+              solution: [['forward', steps]],
+            };
+          },
         },
         {
           id: 'mat-dobro',
           icon: '✌️',
           title: 'O dobro',
-          goal: 'Qual é o dobro de 4? Leva o robô até lá.',
-          hint: 'O dobro é duas vezes o mesmo número: 4 + 4.',
-          world: { signs: [[1, 0, '6'], [4, 3, '8'], [3, 1, '10']] },
-          check: onSign('8'),
-          solution: [['forward', 1], ['turnRight', 1], ['forward', 3]],
+          rounds: ROUNDS,
+          make(random) {
+            const number = between(random, 2, 9);
+            return {
+              goal: `Qual é o dobro de ${number}? Leva o robô até lá.`,
+              hint: `O dobro é duas vezes o mesmo número: ${number} + ${number}.`,
+              ...signQuiz(random, 2 * number, [2 * number - 1, 2 * number + 1, 2 * number + 2, number + 2]),
+            };
+          },
         },
         {
           id: 'mat-contar',
           icon: '🐸',
           title: 'Saltos de 2 em 2',
-          goal: 'A rã salta de 2 em 2: 2, 4, 6, 8… Em que número cai a seguir? Leva o robô até lá.',
-          hint: 'Junta mais 2 ao último número.',
-          world: { signs: [[0, 2, '9'], [1, 0, '10'], [4, 4, '12']] },
-          check: onSign('10'),
-          solution: [['forward', 4]],
+          rounds: ROUNDS,
+          make(random) {
+            const first = 2 * between(random, 1, 5);
+            const jumps = [0, 2, 4, 6].map((jump) => first + jump);
+            return {
+              goal: `A rã salta de 2 em 2: ${jumps.join(', ')}… Em que número cai a seguir? Leva o robô até lá.`,
+              hint: 'Junta mais 2 ao último número.',
+              ...signQuiz(random, first + 8, [first + 7, first + 9, first + 10, first + 12]),
+            };
+          },
         },
         {
           id: 'mat-lados',
@@ -100,51 +182,85 @@ const EXERCISES = {
           id: 'mat-dezenas',
           icon: '🔟',
           title: 'Dezenas e unidades',
-          goal: 'No número 47, qual é o algarismo das dezenas? Anda esse número de passos em frente.',
-          hint: '47 são 4 dezenas e 7 unidades.',
-          world: {},
-          check: ahead(4),
-          solution: [['forward', 4]],
+          rounds: ROUNDS,
+          make(random) {
+            const tens = between(random, 1, 4);
+            const units = pick(random, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].filter((digit) => digit !== tens));
+            return {
+              goal: `No número ${tens}${units}, qual é o algarismo das dezenas? Anda esse número de passos em frente.`,
+              hint: `${tens}${units} são ${tens} ${tens === 1 ? 'dezena' : 'dezenas'} e ${units} ${units === 1 ? 'unidade' : 'unidades'}.`,
+              world: {},
+              check: ahead(tens),
+              solution: [['forward', tens]],
+            };
+          },
         },
         {
           id: 'mat-tabuada',
-          icon: '✖️',
-          title: 'A tabuada do 5',
-          goal: 'Quanto é 3 × 5? Leva o robô até à resposta.',
-          hint: 'São 3 vezes o 5: 5 + 5 + 5.',
-          world: { signs: [[1, 2, '8'], [3, 3, '15'], [4, 1, '35']] },
-          check: onSign('15'),
-          solution: [['forward', 1], ['turnRight', 1], ['forward', 2]],
+          icon: '✋',
+          title: 'As tabuadas',
+          rounds: ROUNDS,
+          make(random) {
+            const table = pick(random, [2, 5, 10]);
+            const times = between(random, 2, 9);
+            const answer = times * table;
+            return {
+              goal: `Quanto é ${times} × ${table}? Leva o robô até à resposta.`,
+              hint: `São ${times} vezes o ${table}. Conta de ${table} em ${table}, ${times} vezes.`,
+              ...signQuiz(random, answer, [answer - table, answer + table, answer + 1, times + table]),
+            };
+          },
         },
         {
           id: 'mat-moedas',
           icon: '💶',
           title: 'O mealheiro',
-          goal: 'A Marta tem uma moeda de 50 cêntimos e duas moedas de 20 cêntimos. Quantos cêntimos tem ao todo? Leva o robô até lá.',
-          hint: 'Soma as três moedas: 50 + 20 + 20.',
-          world: { signs: [[0, 1, '70'], [2, 0, '90'], [4, 3, '100']] },
-          check: onSign('90'),
-          solution: [['forward', 4], ['turnRight', 1], ['forward', 1]],
+          rounds: ROUNDS,
+          make(random) {
+            const big = pick(random, [20, 50]);
+            const small = pick(random, [5, 10, 20].filter((coin) => coin !== big));
+            const count = between(random, 2, 3);
+            const total = big + count * small;
+            return {
+              goal: `A Marta tem uma moeda de ${big} cêntimos e ${count === 2 ? 'duas' : 'três'} moedas de ${small} cêntimos. Quantos cêntimos tem ao todo? Leva o robô até lá.`,
+              hint: `Soma todas as moedas: ${[big, ...Array(count).fill(small)].join(' + ')}.`,
+              ...signQuiz(random, total, [big + small, total + 10, total - 10, total + 5]),
+            };
+          },
         },
         {
           id: 'mat-centimetros',
           icon: '📏',
           title: 'Medir o caminho',
-          goal: 'Neste exercício, cada quadrado do tapete mede 20 cm. O tesouro está escondido 60 cm à frente do robô. Quantos quadrados são? Leva o robô até lá.',
-          hint: 'Conta de 20 em 20 até chegares a 60: 20, 40, 60. Quantas vezes contaste?',
-          world: {},
-          check: ahead(3),
-          solution: [['forward', 3]],
+          rounds: ROUNDS,
+          make(random) {
+            const size = pick(random, [10, 20]);
+            const squares = between(random, 1, 4);
+            return {
+              goal: `Neste exercício, cada quadrado do tapete mede ${size} cm. O tesouro está escondido ${size * squares} cm à frente do robô. Quantos quadrados são? Leva o robô até lá.`,
+              hint: `Conta de ${size} em ${size} até chegares a ${size * squares}. Quantas vezes contaste?`,
+              world: {},
+              check: ahead(squares),
+              solution: [['forward', squares]],
+            };
+          },
         },
         {
           id: 'mat-padrao',
           icon: '🧩',
           title: 'O padrão',
-          goal: '5, 10, 15, 20… Que número vem a seguir? Leva o robô até lá.',
-          hint: 'Os números crescem de 5 em 5.',
-          world: { signs: [[1, 1, '22'], [3, 4, '25'], [5, 2, '30']] },
-          check: onSign('25'),
-          solution: [['turnRight', 1], ['forward', 2]],
+          rounds: ROUNDS,
+          make(random) {
+            const step = pick(random, [5, 10]);
+            const first = step * between(random, 1, 4);
+            const terms = [0, 1, 2, 3].map((term) => first + term * step);
+            const answer = first + 4 * step;
+            return {
+              goal: `${terms.join(', ')}… Que número vem a seguir? Leva o robô até lá.`,
+              hint: `Os números crescem de ${step} em ${step}.`,
+              ...signQuiz(random, answer, [answer + step, answer + 1, answer - 1, answer + 2]),
+            };
+          },
         },
       ],
       hard: [
@@ -152,11 +268,18 @@ const EXERCISES = {
           id: 'mat-pomar',
           icon: '🍎',
           title: 'As maçãs do avô',
-          goal: 'O avô apanhou 24 maçãs. Deu 9 à Inês e 7 ao Tomás. Com quantas maçãs ficou? Leva o robô até à resposta.',
-          hint: 'Vê primeiro quantas maçãs deu ao todo: 9 + 7. Depois tira esse número a 24.',
-          world: { signs: [[0, 0, '8'], [2, 2, '10'], [4, 4, '40']] },
-          check: onSign('8'),
-          solution: [['forward', 4], ['turnLeft', 1], ['forward', 1]],
+          rounds: ROUNDS,
+          make(random) {
+            const apples = between(random, 20, 30);
+            const first = between(random, 3, 9);
+            const second = pick(random, [3, 4, 5, 6, 7, 8, 9].filter((number) => number !== first));
+            const left = apples - first - second;
+            return {
+              goal: `O avô apanhou ${apples} maçãs. Deu ${first} à Inês e ${second} ao Tomás. Com quantas maçãs ficou? Leva o robô até à resposta.`,
+              hint: `Vê primeiro quantas maçãs deu ao todo: ${first} + ${second}. Depois tira esse número a ${apples}.`,
+              ...signQuiz(random, left, [apples - first, apples - second, left + 2, left - 1]),
+            };
+          },
         },
         {
           id: 'mat-retangulo',
@@ -173,31 +296,57 @@ const EXERCISES = {
           id: 'mat-metade',
           icon: '🔵',
           title: 'Metade dos berlindes',
-          goal: 'A Sara tem 16 berlindes e dá metade ao irmão. Com quantos fica? Toca uma nota por cada berlinde com que a Sara fica.',
-          hint: 'Metade de 16 é o número que somado a si próprio dá 16. São muitas notas: dentro de um «Repetir 4 vezes» põe 2 notas.',
-          world: {},
-          check: played(8),
-          solution: [['repeat', 4, [['note', 'do'], ['note', 'mi']]]],
+          rounds: ROUNDS,
+          make(random) {
+            const half = pick(random, [4, 6, 8, 10]);
+            return {
+              goal: `A Sara tem ${2 * half} berlindes e dá metade ao irmão. Com quantos fica? Toca uma nota por cada berlinde com que a Sara fica.`,
+              hint: `Metade de ${2 * half} é o número que somado a si próprio dá ${2 * half}. São muitas notas: põe 2 notas dentro de um «Repetir».`,
+              world: {},
+              check: played(half),
+              solution: [['repeat', half / 2, [['note', 'do'], ['note', 'mi']]]],
+            };
+          },
         },
         {
           id: 'mat-maior',
           icon: '🏔️',
           title: 'O maior número',
-          goal: 'Qual é o maior destes números: 389, 398 ou 298? Leva o robô até ele.',
-          hint: 'Compara primeiro as centenas. Se forem iguais, compara as dezenas.',
-          world: { signs: [[1, 2, '389'], [4, 2, '398'], [3, 0, '298']] },
-          check: onSign('398'),
-          solution: [['forward', 2], ['turnRight', 1], ['forward', 3]],
+          rounds: ROUNDS,
+          make(random) {
+            // Three numbers made of the same digits, so that the hundreds and then the tens must be compared.
+            const hundreds = between(random, 2, 9);
+            const low = between(random, 1, 7);
+            const high = between(random, low + 1, 9);
+            const largest = hundreds * 100 + high * 10 + low;
+            const others = [hundreds * 100 + low * 10 + high, (hundreds - 1) * 100 + high * 10 + low];
+            const [a, b, c] = shuffled(random, [largest, ...others]);
+            return {
+              goal: `Qual é o maior destes números: ${a}, ${b} ou ${c}? Leva o robô até ele.`,
+              hint: 'Compara primeiro as centenas. Se forem iguais, compara as dezenas.',
+              ...signQuiz(random, largest, others),
+            };
+          },
         },
         {
           id: 'mat-itinerario',
           icon: '🧭',
           title: 'O mapa do tesouro',
-          goal: 'Neste exercício, cada quadrado do tapete mede 20 cm. O robô anda 80 cm em frente, vira à direita e anda 60 cm. A que tesouro chega? Leva-o até lá.',
-          hint: 'Conta de 20 em 20: quantos quadrados são 80 cm? E 60 cm?',
-          world: { signs: [[4, 0, '💎'], [3, 0, '👑'], [4, 1, '🏆']] },
-          check: onSign('💎'),
-          solution: [['forward', 4], ['turnRight', 1], ['forward', 3]],
+          rounds: ROUNDS,
+          make(random) {
+            const up = between(random, 2, 4);
+            const across = between(random, 1, 4);
+            const [right, near, below] = shuffled(random, ['💎', '👑', '🏆']);
+            const x = WORLD.start.x + across;
+            const y = WORLD.start.y - up;
+            return {
+              goal: `Neste exercício, cada quadrado do tapete mede 20 cm. O robô anda ${20 * up} cm em frente, vira à direita e anda ${20 * across} cm. A que tesouro chega? Leva-o até lá.`,
+              hint: `Conta de 20 em 20: quantos quadrados são ${20 * up} cm? E ${20 * across} cm?`,
+              world: { signs: [[x, y, right], [x - 1, y, near], [x, y + 1, below]] },
+              check: onSign(right),
+              solution: pathTo([x, y]),
+            };
+          },
         },
       ],
     },
@@ -210,15 +359,21 @@ const EXERCISES = {
           id: 'pt-silabas',
           icon: '👏',
           title: 'Bater as sílabas',
-          goal: 'Quantas sílabas tem a palavra «sapato»? Toca uma nota por cada sílaba.',
-          hint: 'Diz a palavra devagar e bate uma palma por cada bocadinho: sa… pa… to.',
-          world: {},
-          check: played(3),
-          solution: [['note', 'do'], ['note', 're'], ['note', 'mi']],
+          rounds: ROUNDS,
+          make(random) {
+            const [word, parts] = pick(random, SYLLABLES);
+            return {
+              goal: `Quantas sílabas tem a palavra «${word}»? Toca uma nota por cada sílaba.`,
+              hint: `Diz a palavra devagar e bate uma palma por cada bocadinho: ${parts.join('… ')}.`,
+              world: {},
+              check: played(parts.length),
+              solution: parts.map(() => ['note', 'do']),
+            };
+          },
         },
         {
           id: 'pt-rima',
-          icon: '🎵',
+          icon: '🎤',
           title: 'Palavras que rimam',
           goal: 'Que palavra rima com «gato»? Leva o robô até ela.',
           hint: 'Rimam as palavras que acabam com o mesmo som. Diz cada uma em voz alta.',

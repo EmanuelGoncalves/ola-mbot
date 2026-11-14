@@ -10,7 +10,7 @@ It has six tabs:
 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
 | **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, map the room with a 360° radar turn, switch the lights, play the buzzer like a piano, or tap one of twelve jingles. |
 | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
-| **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. |
+| **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | **Comando** | The infrared remote that comes in the box, button by button. |
 
 Every command goes to the robot drawn on screen and, when one is connected over
@@ -103,14 +103,18 @@ The interpreter talks to one `RobotHub`, which forwards each command to the
 
 A school exercise is a mission with a subject: a question, a mat with signs
 (squares holding a number or a word), a `check` on what the robot did, and a
-`solution` the tests run. To add a school year, add its key next to `2` in
-`js/school.js` and list it in `YEARS`.
+`solution` the tests run. An exercise with `make(random)` draws new numbers for
+every round: `make` returns that round's question, mat, check and solution, and
+the star comes after `rounds` right answers, each on a different round (the
+`MissionBoard` counts them). A wrong answer keeps the same numbers. To add a
+school year, add its key next to `2` in `js/school.js` and list it in `YEARS`.
 
 ## Tests
 
 With the server running, open <http://localhost:8765/tests/>. The page runs the
 protocol, program, interpreter and simulator tests, plays a reference solution
-for every mission and school exercise, checks that every lesson can be finished,
+for every mission and school exercise (forty random rounds of each one that
+draws numbers), checks that every lesson can be finished,
 that the jingles use only the piano's notes, and that the radar averages and
 maps its readings.
 
