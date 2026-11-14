@@ -10,14 +10,15 @@ export const WRITE_UUID = '0000ffe3-0000-1000-8000-00805f9b34fb';
 const HEADER = [0xff, 0x55];
 const LINE_END = [0x0d, 0x0a];
 const Action = { GET: 1, RUN: 2, RESET: 4 };
-const Device = { ULTRASONIC: 1, JOYSTICK: 5, RGB_LED: 8, LINE_FOLLOWER: 17, TONE: 34 };
-const Port = { LINE_FOLLOWER: 2, ULTRASONIC: 3, RGB_LED: 7 };
+const Device = { VERSION: 0, ULTRASONIC: 1, LIGHT_SENSOR: 3, JOYSTICK: 5, RGB_LED: 8, LINE_FOLLOWER: 17, TONE: 34, BUTTON: 35 };
+const Port = { LINE_FOLLOWER: 2, ULTRASONIC: 3, LIGHT_SENSOR: 6, RGB_LED: 7, BUTTON: 7 };
 const RGB_SLOT = 2;
 const ALL_LEDS = 0;
 const MAX_SPEED = 255;
 
-/** Reply value types and their sizes in bytes. */
+/** Reply value types and their sizes in bytes. A text (type 4) carries its own length first. */
 const VALUE_SIZE = { 1: 1, 2: 4, 3: 2 };
+const TEXT = 4;
 
 /** Sets both wheels; speeds are −255…255, positive is forwards. */
 export function wheelsPacket(left, right) {
@@ -53,11 +54,26 @@ export function lineRequest(index) {
   return packet(index, Action.GET, Device.LINE_FOLLOWER, Port.LINE_FOLLOWER);
 }
 
+/** Asks for the version of the firmware; the reply is a text such as "06.01.009". */
+export function versionRequest(index) {
+  return packet(index, Action.GET, Device.VERSION);
+}
+
+/** Asks how much light falls on the board's sensor: 0 in the dark, about 1000 in full light. */
+export function lightRequest(index) {
+  return packet(index, Action.GET, Device.LIGHT_SENSOR, Port.LIGHT_SENSOR);
+}
+
+/** Asks whether the button on the board is pressed: the reply is 1 when it is. */
+export function buttonRequest(index) {
+  return packet(index, Action.GET, Device.BUTTON, Port.BUTTON, 0);
+}
+
 /** Collects notification bytes and returns the complete replies found so far. */
 export class ReplyParser {
   #buffer = [];
 
-  /** @returns {{index: number, value: number}[]} */
+  /** @returns {{index: number, value: number | string}[]} */
   push(bytes) {
     this.#buffer.push(...bytes);
     const replies = [];
@@ -73,6 +89,13 @@ export class ReplyParser {
       if (buffer.length < 4) break;
       if (buffer[2] === LINE_END[0] && buffer[3] === LINE_END[1]) {
         buffer.splice(0, 4); // "ff 55 0d 0a" only acknowledges a RUN
+        continue;
+      }
+      if (buffer[3] === TEXT) {
+        const end = 5 + (buffer[4] ?? Infinity);
+        if (buffer.length < end) break;
+        replies.push({ index: buffer[2], value: String.fromCharCode(...buffer.slice(5, end)) });
+        buffer.splice(0, end);
         continue;
       }
       const size = VALUE_SIZE[buffer[3]];

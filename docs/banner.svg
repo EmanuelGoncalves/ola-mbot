@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">Olá, mBot!</title>
+  <desc id="desc">A friendly robot on a blue mat, next to a short program made of coloured blocks.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6f3f9"/>
+      <stop offset="1" stop-color="#cfe8f4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="28" fill="url(#sky)"/>
+
+  <!-- The mat, with its dotted squares and the robot's trail -->
+  <g transform="translate(40 30)">
+    <rect width="240" height="240" rx="24" fill="#d6ecf6" stroke="#b3d6e8" stroke-width="3"/>
+    <path d="M80,10 V230 M160,10 V230 M10,80 H230 M10,160 H230" fill="none" stroke="#b3d6e8" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round"/>
+    <path d="M40,200 V120 H120" fill="none" stroke="#f2853d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+    <path transform="translate(200 40)" d="M0,-24 L7,-9.7 22.8,-7.4 11.4,3.7 14.1,19.4 0,12 -14.1,19.4 -11.4,3.7 -22.8,-7.4 -7,-9.7 Z" fill="#ffc93c" stroke="#d99a00" stroke-width="3" stroke-linejoin="round"/>
+    <g transform="translate(120 120) rotate(90) scale(0.82)">
+      <rect x="-39" y="-4" width="13" height="40" rx="6" fill="#1d4f63"/>
+      <rect x="26" y="-4" width="13" height="40" rx="6" fill="#1d4f63"/>
+      <path d="M -9 -36 L 0 -47 L 9 -36 Z" fill="#1d4f63"/>
+      <rect x="-29" y="-37" width="58" height="74" rx="17" fill="#35b4c9" stroke="#1d4f63" stroke-width="4"/>
+      <circle cx="-12" cy="-18" r="9.5" fill="#ffffff" stroke="#1d4f63" stroke-width="3"/>
+      <circle cx="12" cy="-18" r="9.5" fill="#ffffff" stroke="#1d4f63" stroke-width="3"/>
+      <circle cx="-12" cy="-20" r="4.5" fill="#1d4f63"/>
+      <circle cx="12" cy="-20" r="4.5" fill="#1d4f63"/>
+      <circle cx="-11" cy="6" r="7" fill="#4cd98a" stroke="#1d4f63" stroke-width="2.5"/>
+      <circle cx="11" cy="6" r="7" fill="#4cd98a" stroke="#1d4f63" stroke-width="2.5"/>
+      <path d="M -8 22 Q 0 29 8 22" fill="none" stroke="#1d4f63" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- The name -->
+  <g font-family="'Arial Rounded MT Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif" fill="#17364a">
+    <text x="330" y="140" font-size="92" font-weight="800">Olá, mBot!</text>
+    <text x="334" y="190" font-size="25" font-weight="700" fill="#52728a">Programar um robô com blocos, em português</text>
+    <text x="334" y="228" font-size="20" fill="#52728a">A web app for an eight-year-old and a Makeblock mBot</text>
+  </g>
+
+  <!-- A short program -->
+  <g font-family="'Arial Rounded MT Bold', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="700">
+    <rect x="930" y="34" width="230" height="42" rx="14" fill="#1f9463"/>
+    <text x="948" y="62" fill="#ffffff">▶ Começar</text>
+    <rect x="930" y="84" width="230" height="42" rx="14" fill="#2f73da"/>
+    <text x="948" y="112" fill="#ffffff">Andar em frente</text>
+    <rect x="930" y="134" width="230" height="42" rx="14" fill="#ffc93c"/>
+    <text x="948" y="162" fill="#3b2a00">Acender as luzes</text>
+    <rect x="930" y="184" width="230" height="42" rx="14" fill="#8456d8"/>
+    <text x="948" y="212" fill="#ffffff">Tocar a música</text>
+    <rect x="930" y="234" width="230" height="42" rx="14" fill="#ff9f45"/>
+    <text x="948" y="262" fill="#3d1f00">Repetir 3 vezes</text>
+  </g>
+</svg>

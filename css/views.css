@@ -287,6 +287,7 @@
 .learn-view,
 .missions-view,
 .school-view,
+.parents-view,
 .remote-view {
   display: grid;
   gap: var(--gap);
@@ -348,6 +349,70 @@
 
 .card-mark-empty {
   color: var(--ink-soft);
+}
+
+/* Pais: panels of text for grown-ups, two side by side where there is room */
+.parents-view .panel p,
+.parents-view .panel li {
+  max-width: 70ch;
+}
+
+@media (min-width: 900px) {
+  .parents-view {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .parents-view > .view-intro {
+    grid-column: 1 / -1;
+  }
+}
+
+/* What the robot reads right now: a name and its value on each line */
+.readings {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+}
+
+.readings dt {
+  font-weight: 800;
+}
+
+.readings dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The command line */
+.console-log {
+  height: 220px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: var(--radius-small);
+  background: var(--remote-body);
+  color: var(--remote-key);
+  font: 0.9rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.console-form {
+  display: flex;
+  gap: 8px;
+}
+
+.console-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--ink);
+  font: 1rem/1.2 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 /* Escola: choose the subject and the year, then a row of cards per level */

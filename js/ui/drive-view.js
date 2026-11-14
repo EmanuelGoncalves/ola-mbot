@@ -4,7 +4,8 @@ import { MY_SHOW_ID, playShow, showById, SHOWS } from '../light-shows.js';
 import { followLine, Line } from '../robot/line-follower.js';
 import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
-import { distinct, locate, measure, sameSight, sweep } from '../robot/radar.js';
+import { distinct, locate, sweep, sweepUntilRepeat } from '../robot/radar.js';
+import { saveTuning } from '../robot/tuning.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -288,30 +289,42 @@ export class DriveView {
     this.#showScanning(true);
     this.#simulator.showSightings([]);
     const { scanStops, scanStepMs } = this.#tuning;
+    const sighting = (reading) => ({ from: pose, to: locate(pose, reading).spot });
     this.#mapStatus.textContent = T.drive.mapScanning(0, scanStops);
     this.#hub.focus(true);
     try {
-      const seen = await sweep(this.#hub, {
-        stops: scanStops,
+      if (!real) {
+        await sweep(this.#hub, {
+          stops: scanStops,
+          stepMs: scanStepMs,
+          signal: scan.signal,
+          onStop: (reading) => {
+            this.#mapStatus.textContent = T.drive.mapScanning(++stops, scanStops);
+            if (reading.range !== null) this.#simulator.showSightings([...this.#simulator.sightings, sighting(reading)]);
+          },
+        });
+        this.#mapStatus.textContent = T.drive.mapOnScreen;
+        return;
+      }
+      // The real robot cannot measure its turn: it goes on past a full one, and finds where the turn ended by what it saw.
+      const { turn, found, seen } = await sweepUntilRepeat(this.#hub, {
+        expected: scanStops,
         stepMs: scanStepMs,
         signal: scan.signal,
-        onStop: (reading) => {
-          this.#mapStatus.textContent = T.drive.mapScanning(++stops, scanStops);
-          if (reading.range === null) return;
-          this.#simulator.showSightings([...this.#simulator.sightings, { from: pose, to: locate(pose, reading).spot }]);
-        },
+        onStop: (done, most) => (this.#mapStatus.textContent = T.drive.mapScanning(done, most)),
       });
-      if (!real) {
-        this.#mapStatus.textContent = T.drive.mapOnScreen;
-      } else if (this.#hub.connected) {
-        // Back where it started, the robot should see what it saw at first.
-        const fullCircle = sameSight(seen[0].range, await measure(this.#hub, { signal: scan.signal }));
-        this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
-        const found = T.drive.mapFound(this.#simulator.boxes.length);
-        this.#mapStatus.textContent = fullCircle ? found : `${found} ${T.drive.mapNotFullCircle}`;
-      } else {
+      if (!this.#hub.connected) {
         this.#mapStatus.textContent = T.drive.mapStopped; // the mBot went away half-way: the readings cannot be trusted
+        return;
       }
+      if (found && turn !== scanStops) {
+        this.#tuning.scanStops = turn; // learnt for the next time, and for exploring
+        saveTuning(this.#tuning);
+      }
+      this.#simulator.showSightings(seen.filter((reading) => reading.range !== null).map(sighting));
+      this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
+      const boxes = T.drive.mapFound(this.#simulator.boxes.length);
+      this.#mapStatus.textContent = found ? boxes : `${boxes} ${T.drive.mapNoRepeat}`;
     } catch (error) {
       if (!isAbort(error)) throw error;
       this.#mapStatus.textContent = T.drive.mapStopped;

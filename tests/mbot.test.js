@@ -151,3 +151,12 @@ test('hub: a reset stops the robot on screen, puts its lights out and resets the
   await hub.reset();
   equal(done, ['stop', null, 'real']);
 });
+
+test('hub: a real-only spin goes either way and leaves the robot on screen alone', async () => {
+  const spins = [];
+  const hub = new RobotHub({ rotate: () => spins.push('screen') }, {});
+  hub.attach({ focus() {}, rotate: async (direction, ms) => spins.push([direction, ms]) });
+  await hub.spinReal(170);
+  await hub.spinReal(170, undefined, -1);
+  equal(spins, [[1, 170], [-1, 170]]);
+});

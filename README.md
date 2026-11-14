@@ -1,4 +1,27 @@
-# Olá, mBot!
+<p align="center">
+  <img src="docs/banner.svg" alt="Olá, mBot! A friendly robot on a blue mat, next to a short program made of coloured blocks." width="100%">
+</p>
+
+<p align="center">
+  <a href="https://emanuelgoncalves.github.io/ola-mbot/"><b>▶ Open the app</b></a>
+  &nbsp;·&nbsp; <a href="#what-it-does">What it does</a>
+  &nbsp;·&nbsp; <a href="#screenshots">Screenshots</a>
+  &nbsp;·&nbsp; <a href="#connect-a-real-mbot">Connect a robot</a>
+  &nbsp;·&nbsp; <a href="#how-it-works">How it works</a>
+</p>
+
+<p align="center">
+  <img alt="Language: Portuguese (PT-PT)" src="https://img.shields.io/badge/idioma-portugu%C3%AAs%20(PT--PT)-14788f">
+  <img alt="No build step" src="https://img.shields.io/badge/build-none-1f9463">
+  <img alt="No dependencies" src="https://img.shields.io/badge/dependencies-none-1f9463">
+  <img alt="Tests run in the browser" src="https://img.shields.io/badge/tests-in%20the%20browser-2f73da">
+  <img alt="Web Bluetooth: Chrome, Edge, Bluefy" src="https://img.shields.io/badge/Web%20Bluetooth-Chrome%20%C2%B7%20Edge%20%C2%B7%20Bluefy-8456d8">
+</p>
+
+A web app in European Portuguese for an eight-year-old to program a
+[Makeblock mBot](https://www.makeblock.com/pages/mbot-robot-kit) with blocks.
+Every command goes to a robot drawn on screen and, when one is connected over
+Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 
 > [!NOTE]
 > **Made with generative AI.** The code, the texts and the school exercises in
@@ -8,21 +31,20 @@
 > use it at your own risk, and supervise children while the robot is moving. It
 > is a personal project, not affiliated with or endorsed by Makeblock.
 
-A web app in European Portuguese (PT-PT) for an eight-year-old to program a
-[Makeblock mBot](https://www.makeblock.com/pages/mbot-robot-kit) with blocks.
-It has six tabs:
+## What it does
 
-| Tab | What it is |
-| --- | --- |
-| **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
-| **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
-| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, follow the black line of the printed circuit, map the room with a 360° radar turn, switch the lights or start a light show, play the buzzer like a piano, or tap one of the jingles. Its **Explorar** part lets the robot find the way out of the room by itself. |
-| **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
-| **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
-| **Comando** | The infrared remote that comes in the box, button by button. |
+| | Tab | What it is |
+| :-: | --- | --- |
+| 🎓 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
+| 🧩 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. Moves, lights and light shows, notes and whole tunes, repeats, and the robot's eyes. |
+| 🕹️ | **Conduzir** | Drive with arrows, stop before bumping, follow the black line of the printed circuit, map the room, start a light show, play the buzzer like a piano or tap a tune. Its **Explorar** part lets the robot find the way out of the room by itself. |
+| ⭐ | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
+| 🎒 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
+| 📡 | **Comando** | The infrared remote that comes in the box, button by button. |
+| 🛠️ | **Pais** | For grown-ups: what the robot is made of, what the app can and cannot do with it, firmware and batteries, what the sensors read right now, and a command line. |
 
-Every command goes to the robot drawn on screen and, when one is connected over
-Bluetooth, to the real mBot too. Without a robot the app is fully usable.
+A red **Parar tudo** button, always in the top bar, ends whatever is running
+and resets the robot.
 
 ## Screenshots
 
@@ -32,11 +54,13 @@ Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 | ![The Programar tab with a program of five blocks and the robot's trail on the mat](docs/screenshots/programar.png)<br>**Programar**: blocks, the program and the mat. | ![The Conduzir tab after a radar turn, with rays from the robot to the boxes](docs/screenshots/conduzir.png)<br>**Conduzir**: arrows, and the radar's view of the mat. |
 | ![The Explorar part of Conduzir: a map of a room with the robot's path along the walls and out through a door 85 cm wide](docs/screenshots/explorar.png)<br>**Explorar**: the robot finds the door by itself. | ![The labyrinth mission solved, with its star](docs/screenshots/missao.png)<br>**Missões**: the labyrinth, solved. |
 | ![The Escola tab with the Matemática exercises by level](docs/screenshots/escola.png)<br>**Escola**: exercises by subject and level. | ![A Português exercise: a short text, a question and three signs on the mat](docs/screenshots/exercicio.png)<br>An exercise: read, then take the robot to the answer. |
-| ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. | |
+| ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. | ![The Pais tab: what the sensors read, and a command line](docs/screenshots/pais.png)<br>**Pais**: live readings and a command line. |
 
-## Run it
+## Try it
 
-No build step and no dependencies: plain HTML, CSS and ES modules.
+The app is live at <https://emanuelgoncalves.github.io/ola-mbot/>. To run your
+own copy there is no build step and nothing to install: plain HTML, CSS and ES
+modules.
 
 ```bash
 python3 -m http.server 8765
@@ -56,40 +80,52 @@ the one that makes the remote work.
 | iPad, iPhone | [Bluefy](https://apps.apple.com/app/id1492822055), a free browser with Web Bluetooth. Safari has none. |
 
 Web Bluetooth only works on `https://` pages (and on `localhost`), so for the
-iPad the app is published with GitHub Pages from the `main` branch:
-<https://emanuelgoncalves.github.io/ola-mbot/>. Pushing to `main` updates it.
+iPad the app is published with GitHub Pages from the `main` branch. Pushing to
+`main` updates it.
 
-The mBot has no wheel sensors: a step and a quarter turn are timed motor runs.
-"Ligar ao robô → Afinar o robô" has two sliders to match them to your floor and
-batteries. It also has two switches for a robot that drives or turns the wrong
+The mBot has no wheel sensors and no gyroscope: a step and a quarter turn are
+timed motor runs, which change with the floor and the batteries. "Ligar ao robô
+→ Afinar o robô" has sliders for them, and the robot can set them by itself with
+its distance sensor:
+
+- **Afinar o passo sozinho**: facing a wall, it takes one step and measures how
+  far it went.
+- **Afinar as voltas sozinho**: with things around it at different distances, it
+  spins for more than a turn, sees where the turn ended by what it sees again,
+  then measures what four quarter turns really add up to.
+
+The same section has two switches for a robot that drives or turns the wrong
 way, which happens when the two motors were plugged into each other's sockets.
 
-## The mat and the real floor
+## How it works
+
+<details>
+<summary><b>The mat and the real floor</b></summary>
 
 One square of the mat stands for a square of floor, 20 cm wide unless changed in
-"Afinar o robô". One step should cover one square: "Afinar o passo sozinho" lets
-the mBot measure its own step against a wall with its ultrasonic sensor and sets
-the step time from it. The eyes call something an obstacle when it is less than
-one square away, as on screen.
+"Afinar o robô". One step should cover one square. The eyes call something an
+obstacle when it is less than one square away, as on screen.
 
-"Conduzir → Mapa da sala" turns the robot once around in short spins. At each
-stop it reads the distance 7 times and keeps the average of the middle readings,
-so a missed echo or a wild value does not count. Each distance becomes a point
-on the mat, and the squares with something in them become boxes. The sensor sees
-in a wide cone, so one thing seen by neighbouring looks is counted once
-(`distinct` in `js/robot/radar.js`). Without a robot connected, the radar only
-draws what the robot on screen sees.
+"Conduzir → Mapa da sala" turns the robot in short spins. At each stop it reads
+the distance 7 times and keeps the average of the middle readings, so a missed
+echo or a wild value does not count. Each distance becomes a point on the mat,
+and the squares with something in them become boxes. The sensor sees in a wide
+cone, so one thing seen by neighbouring looks is counted once (`distinct` in
+`js/robot/radar.js`).
 
 A short spin turns the robot less than its time suggests, because the motors
-need a moment to get going, so the number of spins in a full turn has to be
-found on the real robot. "Contar as rodadelas sozinho" does it with the sensor:
-with one box close in front and nothing else near, the robot spins until it has
-lost the box and found it again. After every scan the robot also checks that it
-sees again what it saw at first, and says so when the turn was not a full one.
-It stays a coarse map: turns are timed, not measured, and the cone is about 30°
-wide.
+need a moment to get going, and the robot cannot measure the angle. So the real
+robot spins for more than a full turn, and `spinsInATurn` finds where the looks
+start to repeat the first ones: that is one turn, however many spins it took.
+The number is kept for next time and for exploring. With nothing to recognise
+around it, the robot says the map may be off. It stays a coarse map: the cone is
+about 30° wide, and a smooth wall seen at a slant sends no echo back. Without a
+robot connected, the radar only draws what the robot on screen sees.
 
-## Following the line
+</details>
+
+<details>
+<summary><b>Following the line</b></summary>
 
 "Conduzir → Seguir a linha" follows the black line of the paper circuit that
 comes in the box, with the two sensors under the robot
@@ -100,7 +136,10 @@ does. Over Bluetooth each look takes some tens of milliseconds, so start with
 the slow speed. On screen, a round circuit is drawn on the mat for the robot
 there to follow.
 
-## Finding the way out
+</details>
+
+<details>
+<summary><b>Finding the way out</b></summary>
 
 "Conduzir → Explorar" makes the robot look for a doorway, 80 cm to 1 m wide, and
 drive through it. Its eyes only look ahead and it cannot measure how far it
@@ -128,69 +167,10 @@ with moves and turns up to 4% off, and in most with 8%. On a real floor expect
 it to be slow (about three seconds a step) and to fail sometimes: a door left
 half open, a rug, or a wide passage will fool it.
 
-## Layout
+</details>
 
-```
-index.html            entry page
-artifact.html         the same page as a fragment, for publishing as a Claude Artifact
-css/                  tokens (both themes), base, and one file per area
-js/main.js            builds the page and switches tabs
-js/texts.js           interface text (PT-PT)
-js/tutorial.js        the tutorial's lessons, step by step
-js/missions.js        the missions and the star board
-js/school.js          the school exercises, by subject, year and level
-js/jingles.js         short tunes for the buzzer (also the «Tocar a música» block), and their player
-js/light-shows.js     colour sequences for the two lights (also the «Espetáculo de luzes» block), the child's own show, and their player
-js/remote-guide.js    what each remote button does
-js/program/           block catalogue, program model, interpreter
-js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar, explorer and its pretend rooms
-js/ui/                one module per tab, plus shared pieces
-tests/                browser tests
-docs/screenshots/     the pictures in this README
-```
-
-A lesson is data: each step has its text, what to point at and a test that
-tells when it is done. `js/ui/coach.js` shows the first step that is not done
-yet, so a child who undoes something is simply walked through it again.
-
-The interpreter talks to one `RobotHub`, which forwards each command to the
-`Simulator` and to the `MBot`. Both implement the same commands: `move`, `turn`,
-`rotate`, `moveUntilObstacle`, `setLights`, `playTone`, `obstacleAhead`, `drive`,
-`stop`. The hub also answers `look`, `range` and `readLine` from the real
-robot's sensors when one is connected, and from the one on screen otherwise.
-
-A school exercise is a mission with a subject: a question, a mat with signs
-(squares holding a number or a word), a `check` on what the robot did, and a
-`solution` the tests run. An exercise with `make(random)` draws new numbers for
-every round: `make` returns that round's question, mat, check and solution, and
-the star comes after `rounds` right answers, each on a different round (the
-`MissionBoard` counts them). A wrong answer keeps the same numbers. To add a
-school year, add its key next to `2` in `js/school.js` and list it in `YEARS`.
-
-## Tests
-
-With the server running, open <http://localhost:8765/tests/>. The page runs the
-protocol, program, interpreter and simulator tests, plays a reference solution
-for every mission and school exercise (forty random rounds of each one that
-draws numbers), checks that every lesson can be finished,
-that the jingles use only the piano's notes, that the radar averages and maps
-its readings, and that the explorer finds the door of each pretend room.
-
-## Protocol
-
-Packets follow the factory firmware's parser
-([source](https://github.com/Makeblock-official/Makeblock-Libraries/blob/master/examples/Firmware_For_mBlock/mbot_factory_firmware/mbot_factory_firmware.ino)):
-`ff 55 <length> <index> <action> <device> <data…>`.
-
-| Command | Bytes |
-| --- | --- |
-| Both wheels | `ff 55 07 00 02 05 <left int16> <right int16>` (left is mirrored) |
-| Both LEDs | `ff 55 09 00 02 08 07 02 00 <r> <g> <b>` |
-| Buzzer | `ff 55 07 00 02 22 <hz int16> <ms int16>` |
-| Read distance | `ff 55 04 <index> 01 01 03` → `ff 55 <index> 02 <float32> 0d 0a` |
-| Read line sensors | `ff 55 04 <index> 01 11 02` → same reply; 0 both on the line, 1 left only, 2 right only, 3 neither |
-
-Bluetooth service `ffe1`; write to characteristic `ffe3`, notifications on `ffe2`.
+<details>
+<summary><b>The Bluetooth link, and a robot that does one thing at a time</b></summary>
 
 The link (`js/robot/bluetooth.js`) writes one packet at a time and gives up a
 write that does not end in 1.5 s. Of the packets of one kind still waiting
@@ -226,3 +206,89 @@ They ask for the robot's full attention (`hub.focus`): meanwhile the real buzzer
 stays silent (tunes still play on the device) and the real lights change at most
 twice a second. The line follower also says its wheel speeds again every 300 ms,
 so that one lost order is put right.
+
+</details>
+
+<details>
+<summary><b>The protocol</b></summary>
+
+Packets follow the factory firmware's parser
+([source](https://github.com/Makeblock-official/Makeblock-Libraries/blob/master/examples/Firmware_For_mBlock/mbot_factory_firmware/mbot_factory_firmware.ino)):
+`ff 55 <length> <index> <action> <device> <data…>`.
+
+| Command | Bytes |
+| --- | --- |
+| Both wheels | `ff 55 07 00 02 05 <left int16> <right int16>` (left is mirrored) |
+| Both LEDs | `ff 55 09 00 02 08 07 02 00 <r> <g> <b>` |
+| Buzzer | `ff 55 07 00 02 22 <hz int16> <ms int16>` |
+| Read distance | `ff 55 04 <index> 01 01 03` → `ff 55 <index> 02 <float32> 0d 0a` |
+| Read line sensors | `ff 55 04 <index> 01 11 02` → same reply; 0 both on the line, 1 left only, 2 right only, 3 neither |
+| Read light sensor | `ff 55 04 <index> 01 03 06` → same reply; 0 dark, about 1000 bright |
+| Read the button | `ff 55 05 <index> 01 23 07 00` → `ff 55 <index> 01 <0 or 1> 0d 0a` |
+| Firmware version | `ff 55 03 <index> 01 00` → `ff 55 <index> 04 <length> <text> 0d 0a` |
+| Stop everything | `ff 55 02 00 04` (motors and buzzer off) |
+
+Bluetooth service `ffe1`; write to characteristic `ffe3`, notifications on `ffe2`.
+
+The **Pais** tab has a command line that sends these packets, by name (`andar
+2`, `luz azul`, `distancia`) or as raw bytes (`hex ff 55 02 00 04`), and can
+show every byte that goes to the robot and comes back.
+
+</details>
+
+## Project layout
+
+```
+index.html            entry page
+artifact.html         the same page as a fragment, for publishing as a Claude Artifact
+css/                  tokens (both themes), base, and one file per area
+js/main.js            builds the page and switches tabs
+js/texts.js           interface text (PT-PT)
+js/tutorial.js        the tutorial's lessons, step by step
+js/missions.js        the missions and the star board
+js/school.js          the school exercises, by subject, year and level
+js/jingles.js         short tunes for the buzzer (also the «Tocar a música» block), and their player
+js/light-shows.js     colour sequences for the two lights (also the «Espetáculo de luzes» block), the child's own show, and their player
+js/remote-guide.js    what each remote button does
+js/parents-guide.js   the text of the Pais tab
+js/program/           block catalogue, program model, interpreter
+js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar, line follower,
+                      explorer and its pretend rooms, and the command line
+js/ui/                one module per tab, plus shared pieces
+tests/                browser tests
+docs/                 the banner and the screenshots of this README
+```
+
+A lesson is data: each step has its text, what to point at and a test that
+tells when it is done. `js/ui/coach.js` shows the first step that is not done
+yet, so a child who undoes something is simply walked through it again.
+
+The interpreter talks to one `RobotHub`, which forwards each command to the
+`Simulator` and to the `MBot`. Both implement the same commands: `move`, `turn`,
+`rotate`, `moveUntilObstacle`, `setLights`, `playTone`, `obstacleAhead`, `drive`,
+`stop`. The hub also answers `look`, `range` and `readLine` from the real
+robot's sensors when one is connected, and from the one on screen otherwise.
+
+A school exercise is a mission with a subject: a question, a mat with signs
+(squares holding a number or a word), a `check` on what the robot did, and a
+`solution` the tests run. An exercise with `make(random)` draws new numbers for
+every round: `make` returns that round's question, mat, check and solution, and
+the star comes after `rounds` right answers, each on a different round (the
+`MissionBoard` counts them). A wrong answer keeps the same numbers. To add a
+school year, add its key next to `2` in `js/school.js` and list it in `YEARS`.
+
+## Tests
+
+With the server running, open <http://localhost:8765/tests/>. The tests run in
+the browser, in about twenty seconds. They cover:
+
+- the protocol, the program model and the interpreter;
+- the Bluetooth link: newest packet wins, time limits, reconnecting;
+- a reference solution for every mission and school exercise, with forty random
+  rounds of each exercise that draws numbers;
+- every lesson, from first step to last;
+- the radar: averaging, finding its own full turn, measuring quarter turns;
+- the line follower, with the robot on screen going all the way round its
+  circuit;
+- the explorer finding the door of each pretend room, also on a slippery floor;
+- tunes, light shows and the command line.

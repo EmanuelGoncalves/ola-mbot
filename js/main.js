@@ -12,6 +12,7 @@ import { Connection } from './ui/connection.js';
 import { DriveView } from './ui/drive-view.js';
 import { LearnView } from './ui/learn-view.js';
 import { MissionsView } from './ui/missions-view.js';
+import { ParentsView } from './ui/parents-view.js';
 import { ProgramView } from './ui/program-view.js';
 import { RemoteView } from './ui/remote-view.js';
 import { createRobotPortrait } from './ui/robot-figure.js';
@@ -28,6 +29,7 @@ const TABS = [
   { id: 'missoes', icon: '⭐', label: T.tabs.missions },
   { id: 'escola', icon: '🎒', label: T.tabs.school },
   { id: 'comando', icon: '📡', label: T.tabs.remote },
+  { id: 'pais', icon: '🛠️', label: T.tabs.parents },
 ];
 
 function start() {
@@ -57,6 +59,7 @@ function start() {
     missoes: new MissionsView({ board, onPlay: playMission }).element,
     escola: new SchoolView({ board, onPlay: playMission }).element,
     comando: new RemoteView().element,
+    pais: null, // made below, once there is a connection to show
   };
 
   const stopRobot = () => {
@@ -64,6 +67,7 @@ function start() {
     driveView.stop();
   };
   const connection = new Connection({ hub, tuning, onOpen: stopRobot });
+  views.pais = new ParentsView({ hub, tuning, link: connection.link }).element;
   /** The way out when the robot is doing too much at once: ends every activity and starts the robot afresh. */
   const stopAll = () => {
     stopRobot();

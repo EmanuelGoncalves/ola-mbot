@@ -1,4 +1,4 @@
-import { countSpins, distinct, locate, measure, measureStep, sameSight, steadyAverage, sweep } from '../js/robot/radar.js';
+import { distinct, locate, measure, measureQuarters, measureStep, spinsInATurn, spinsPast, steadyAverage, sweep, sweepUntilRepeat } from '../js/robot/radar.js';
 import { Simulator } from '../js/robot/simulator.js';
 import { equal, ok, test } from './harness.js';
 
@@ -75,33 +75,68 @@ test('radar: with finer spins, a box seen by five looks still counts once', () =
   equal(kept([null, null, 1.52, 1.5, 1.5, 1.51, 1.53], 24), [60]);
 });
 
-test('radar: back at the start, the same sight means a full circle', () => {
-  ok(sameSight(2, 2.3) && sameSight(null, null));
-  ok(!sameSight(2, 3) && !sameSight(2, null) && !sameSight(null, 2));
-});
+/** What a robot standing still sees each way: a box close ahead, a wall to its right, a chair behind, nothing elsewhere. */
+function around(heading) {
+  const at = ((heading % 360) + 360) % 360;
+  if (at <= 20 || at >= 340) return 1.5;
+  if (at >= 70 && at <= 130) return 3;
+  if (at >= 200 && at <= 230) return 2.2;
+  return null;
+}
 
-/** A robot that only turns on the spot, by `perSpin` degrees whatever it is told, and sees one thing 20° wide. */
-function spinner(perSpin, range = 1.5) {
-  const robot = { heading: 0, spinReal: async () => (robot.heading += perSpin), range: async () => (off() <= 20 ? range : null) };
-  const off = () => Math.abs(((robot.heading + 180) % 360) - 180);
+/**
+ * A real robot that only turns on the spot: `perSpin` degrees at each short spin and
+ * `perQuarter` at each quarter turn, whatever it is meant to turn. `view` is what it sees.
+ */
+function turner({ perSpin, perQuarter = 90, view = around }) {
+  const robot = {
+    heading: 0,
+    range: async () => view(robot.heading),
+    spinReal: async (ms, signal, direction = 1) => (robot.heading += direction * perSpin),
+    turn: async (quarters) => (robot.heading += quarters * perQuarter),
+  };
   return robot;
 }
 
-test('radar: the robot counts the spins of a full turn by finding again what it faced', async () => {
-  equal(await countSpins(spinner(24), { stepMs: 1, wait: noWait }), 15);
-  equal(await countSpins(spinner(30), { stepMs: 1, wait: noWait }), 12);
-  equal(await countSpins(spinner(12), { stepMs: 1, wait: noWait }), 30);
+const turnOf = (robot, expected = 12) => sweepUntilRepeat(robot, { expected, stepMs: 1, wait: noWait });
+
+test('radar: a full turn ends where the looks start to repeat', () => {
+  const looks = Array.from({ length: 22 }, (_, spin) => around(spin * 24));
+  equal(spinsInATurn(looks, 12), 15);
+  equal(spinsInATurn(looks.map(() => null), 12), null, 'with nothing in sight:');
+  equal(spinsInATurn(looks.map(() => 2), 12), null, 'with the same all round:');
 });
 
-test('radar: after counting, the robot faces the way it started', async () => {
-  const robot = spinner(24);
-  await countSpins(robot, { stepMs: 1, wait: noWait });
-  equal(robot.heading % 360, 0);
+test('radar: the real robot finds how many spins its full turn takes, and comes back', async () => {
+  for (const [perSpin, spins] of [[24, 15], [30, 12], [20, 18]]) {
+    const robot = turner({ perSpin });
+    const { turn, found, seen } = await turnOf(robot);
+    equal([turn, found, seen.length], [spins, true, spins], `${perSpin}° a spin:`);
+    equal(robot.heading % 360, 0, 'it does not face the way it started:');
+    equal(seen[1].degrees, 360 / spins);
+  }
 });
 
-test('radar: counting gives up with nothing close in front, or a robot that hardly turns', async () => {
-  equal(await countSpins(spinner(24, 5), { stepMs: 1, wait: noWait }), null, 'a far thing:');
-  equal(await countSpins(spinner(0.5), { stepMs: 1, wait: noWait }), null, 'hardly turning:');
+test('radar: with nothing to recognise, the turn is taken to be what it should be', async () => {
+  const { turn, found } = await turnOf(turner({ perSpin: 24, view: () => null }));
+  equal([turn, found], [12, false]);
+});
+
+test('radar: a few looks tell how far past the start of the turn the robot is', () => {
+  const turn = Array.from({ length: 15 }, (_, spin) => around(spin * 24));
+  const from = (spin) => [0, 1, 2, 3].map((more) => around((spin + more) * 24));
+  equal(spinsPast(turn, from(0)), 0);
+  equal(spinsPast(turn, from(2)), 2);
+  equal(spinsPast(turn, from(-3)), -3);
+  equal(spinsPast(turn, [7, 7, 7, 7]), null, 'looks that fit nowhere:');
+});
+
+test('radar: four quarter turns are measured against the full turn', async () => {
+  for (const [perQuarter, degrees] of [[90, 360], [84, 336], [102, 408]]) {
+    const robot = turner({ perSpin: 24, perQuarter });
+    const { seen } = await turnOf(robot);
+    equal(await measureQuarters(robot, { seen, stepMs: 1, wait: noWait }), degrees, `${perQuarter}° a quarter turn:`);
+  }
 });
 
 test('radar: a reading becomes a spot and a square on the mat', () => {

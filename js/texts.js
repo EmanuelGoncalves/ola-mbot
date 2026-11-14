@@ -11,6 +11,7 @@ export const T = {
     missions: 'Missões',
     school: 'Escola',
     remote: 'Comando',
+    parents: 'Pais',
   },
 
   stopAll: {
@@ -162,7 +163,7 @@ export const T = {
     mapScanning: (stop, total) => `A olhar à volta… ${stop} de ${total}`,
     mapFound: (boxes) =>
       boxes === 0 ? 'Não vi nada por perto. O caminho está livre!' : boxes === 1 ? 'Vi uma coisa e pus 1 caixa no tapete.' : `Vi coisas à volta e pus ${boxes} caixas no tapete.`,
-    mapNotFullCircle: 'Mas o robô parece não ter dado a volta certinha, e as caixas podem estar no sítio errado. Pede a um adulto para afinar o radar em «Ligar ao robô».',
+    mapNoRepeat: 'Mas não consegui ver onde acabava a volta, e as caixas podem estar no sítio errado. Põe uma caixa perto do robô e tenta outra vez.',
     mapOnScreen: 'Isto foi o robô do ecrã a ver as caixas do tapete. Com o mBot verdadeiro ligado, ele faz o mapa da tua sala!',
     mapStopped: 'Parei a meio. Quando quiseres, começamos outra vez.',
     mapCleared: 'O tapete ficou limpo.',
@@ -172,6 +173,32 @@ export const T = {
     home: 'Voltar ao início',
     modesLabel: 'O que fazer com o robô',
     modes: { drive: 'Conduzir', explore: 'Explorar' },
+  },
+
+  parents: {
+    title: 'Para os pais',
+    intro: 'Esta página é para os adultos: o que é o mBot, o que a aplicação consegue fazer com ele, e ferramentas para ver o que se passa lá dentro.',
+    readingsTitle: 'O robô, agora',
+    readingsHint: 'Pergunta ao robô o que os sensores estão a ver, a versão do firmware e como está a ligação. Sem o mBot ligado, responde o robô do ecrã no que souber.',
+    read: 'Ler tudo agora',
+    noReadings: 'Ainda não perguntei nada ao robô.',
+    /** What is asked, and the order of the command line that asks it. */
+    readings: [
+      ['Distância à frente', 'distancia'],
+      ['Sensores de linha', 'linha'],
+      ['Luz na placa', 'luminosidade'],
+      ['Botão da placa', 'botao'],
+      ['Versão do firmware', 'versao'],
+      ['Ligação Bluetooth', 'estado'],
+    ],
+    consoleTitle: 'Linha de comandos',
+    consoleHint: 'Dá ordens ao robô escrevendo. Escreva «ajuda» para ver as ordens todas. As setas para cima e para baixo trazem de volta o que já escreveu.',
+    consoleLog: 'Respostas do robô',
+    consoleInput: 'Ordem para o robô',
+    consolePlaceholder: 'ajuda',
+    consoleWelcome: (orders) => `Há ${orders} ordens. Escreva «ajuda» e carregue em Enviar.`,
+    send: 'Enviar',
+    monitor: 'Mostrar os bytes que vão (→) e que vêm (←)',
   },
 
   show: {
@@ -273,21 +300,18 @@ export const T = {
     fitFailed: 'Não consegui medir. O mBot tem de estar virado de frente para uma parede lisa, a cerca de um metro.',
     fitDone: (cm, ms) => `O mBot andou ${cm} cm. Mudei o tempo de um passo para ${seconds(ms)}. Carregue outra vez para confirmar.`,
     scanIntro:
-      'Para o mapa da sala, o mBot dá uma volta inteira em rodadelas curtas, e para a olhar em cada uma. Uma rodadela curta roda menos do que parece: se o mBot não chegar a dar a volta toda, aumente o número de rodadelas e teste outra vez.',
+      'Para o mapa da sala, o mBot roda em rodadelas curtas e para a olhar em cada uma. Como não mede o que roda, dá mais de uma volta e descobre onde ela acabou pelo que vê. Estes dois valores são o ponto de partida; o mBot corrige o número de rodadelas sempre que faz um mapa.',
     scanTime: 'Radar: tempo de cada rodadela',
     scanStops: 'Radar: rodadelas numa volta inteira',
-    spinIntro:
-      'O mBot também pode contar as rodadelas sozinho. Ponha-o num sítio livre, com uma caixa a um palmo mesmo à frente dele e mais nada por perto. Ele roda até voltar a ver a caixa.',
-    countSpins: 'Contar as rodadelas sozinho',
-    spinCounting: 'A contar… O mBot vai rodando até voltar a ver a caixa.',
-    spinFailed:
-      'Não consegui contar. O mBot precisa de uma só coisa perto, mesmo à frente dele, e de espaço livre à volta. Se ele quase não rodar, aumente o tempo de cada rodadela.',
-    spinDone: (spins) => `Uma volta inteira são ${spins} rodadelas. O radar já ficou afinado.`,
-    testScan: 'Testar a volta do radar',
-    stepTime: 'Tempo de um passo',
-    turnTime: 'Tempo de um quarto de volta',
-    testStep: 'Testar um passo',
-    testTurn: 'Testar um quarto de volta',
+    turnsIntro:
+      'O mBot também pode afinar as voltas sozinho. Ponha-o num sítio com coisas à volta a distâncias diferentes (uma caixa a um palmo e uma parede mais longe chegam) e carregue no botão. Ele roda devagar mais de uma volta, repara quando volta a ver as mesmas coisas e fica a saber quantas rodadelas tem uma volta. Depois dá quatro quartos de volta e vê onde foi parar. Demora cerca de um minuto.',
+    fitTurns: 'Afinar as voltas sozinho',
+    turnsMeasuring: 'A rodar e a olhar… Não mexa no robô nem nas coisas à volta dele.',
+    turnsFailed:
+      'Não consegui perceber onde acaba a volta. O mBot precisa de ver coisas a distâncias diferentes à volta dele: ponha uma caixa a um palmo e tente outra vez. Se ele quase não rodar, aumente o tempo de cada rodadela.',
+    spinsDone: (spins) => `Uma volta inteira são ${spins} rodadelas: o radar ficou afinado. Não consegui medir os quartos de volta.`,
+    turnsDone: (spins, degrees, ms) =>
+      `Uma volta inteira são ${spins} rodadelas. Quatro quartos de volta deram ${degrees}° em vez de 360°: mudei o tempo de um quarto de volta para ${seconds(ms)}. Carregue outra vez para confirmar.`,
     flipIntro: 'Se o mBot verdadeiro andar ao contrário do robô do ecrã, os motores foram ligados ao contrário na montagem. Estes interruptores corrigem isso aqui na aplicação.',
     flipDrive: 'Trocar frente e trás',
     flipTurn: 'Trocar esquerda e direita',

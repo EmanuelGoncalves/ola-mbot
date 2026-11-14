@@ -2,8 +2,6 @@ import { sleep } from '../timing.js';
 
 /** How many times the radar measures at each stop. */
 const READINGS = 7;
-/** Fewer when it only needs to tell near from far. */
-const QUICK_READINGS = 3;
 /** Lets the robot stop wobbling before it measures. */
 const SETTLE_MS = 200;
 /** Lets the echo of one measurement die out before the next. */
@@ -14,14 +12,14 @@ const BOX_DEPTH = 0.3;
 const SAME_THING = 0.08;
 /** The eyes see a cone about this wide, in degrees. */
 const BEAM_DEGREES = 30;
-/** To count the spins of a full turn, the thing in front must be nearer than this, in squares… */
-const NEAR_LIMIT = 3;
-/** …and everything else at least this many times further away. */
-const CLEARLY_FURTHER = 1.5;
-/** Spins after which counting a full turn gives up. */
-const MOST_SPINS = 60;
-/** Two looks the same way that differ by more than this part saw different things. */
-const SAME_SIGHT = 0.25;
+/** Two looks the same way that differ by this part of the distance, or more, saw different things. */
+const ALIKE_WITHIN = 0.3;
+/** A turn is looked for between these many times the spins it should take… */
+const SHORTEST_TURN = 0.6;
+const LONGEST_TURN = 1.5;
+/** …and it is found where at least this many looks repeat the first ones this well, on average. */
+const REPEAT_LOOKS = 4;
+const GOOD_REPEAT = 0.35;
 /** The wall must be at least this far, in squares, to test a step towards it. */
 const ROOM_FOR_A_STEP = 2;
 
@@ -115,40 +113,106 @@ export async function measureStep(robot, { signal, wait = sleep } = {}) {
   return after === null ? null : before - after;
 }
 
-/** True when two looks in the same direction agree: both saw nothing, or about the same distance. */
-export function sameSight(a, b) {
-  if (a === null || b === null) return a === b;
-  return Math.abs(a - b) <= SAME_SIGHT * Math.max(a, b);
+/** How unlike two looks the same way are: 0 the same, 1 as different as can be. */
+function unlike(a, b) {
+  if (a === null || b === null) return a === b ? 0 : 1;
+  return Math.min(1, Math.abs(a - b) / (ALIKE_WITHIN * Math.max(a, b)));
+}
+
+/** How unlike two rows of looks are on average, the second starting `shift` places into the first. */
+function unlikeAt(looks, others, shift) {
+  let [total, pairs] = [0, 0];
+  for (const [i, other] of others.entries()) {
+    const look = looks[i + shift];
+    if (look === undefined) break;
+    total += unlike(look, other);
+    pairs += 1;
+  }
+  return pairs > 0 ? total / pairs : 1;
 }
 
 /**
- * Counts how many spins of `stepMs` make a full turn of the real robot, which cannot measure
- * angles. The robot must face one thing that is close, with everything else clearly further
- * away: it spins until it loses the thing and finds it again, and the middle of the second
- * sighting is one full turn. It then spins on to the end of a second turn, to face the way
- * it started. Returns the number of spins, or null when it could not tell.
+ * How many spins a full turn took, from looks taken one spin apart for more than a turn: the
+ * turn is over where the looks start to repeat the first ones. Among numbers that fit equally
+ * well, the nearest to `expected` wins. Returns null when the looks do not tell: nothing in
+ * sight, the same all round, or no repeat near `expected`.
  */
-export async function countSpins(robot, { stepMs, signal, wait = sleep } = {}) {
-  const look = () => measure(robot, { signal, wait, readings: QUICK_READINGS });
-  const spin = async () => {
-    await robot.spinReal(stepMs, signal);
-    await wait(SETTLE_MS, signal);
-  };
-  const first = await look();
-  if (first === null || first > NEAR_LIMIT) return null;
-  const near = (range) => range !== null && range < first * CLEARLY_FURTHER;
-  let lost = false;
-  let found = null;
-  for (let spins = 1; spins <= MOST_SPINS; spins++) {
-    await spin();
-    const seen = near(await look());
-    if (!lost) lost = !seen;
-    else if (found === null && seen) found = spins;
-    else if (found !== null && !seen) {
-      const turn = Math.round((found + spins - 1) / 2);
-      for (let more = 2 * turn - spins; more > 0; more--) await spin();
-      return turn;
-    }
+export function spinsInATurn(looks, expected) {
+  const seen = looks.filter((look) => look !== null);
+  const allAlike = seen.length === looks.length && Math.max(...seen) - Math.min(...seen) < ALIKE_WITHIN * Math.max(...seen);
+  if (seen.length === 0 || allAlike) return null;
+  let best = null;
+  for (let turn = Math.ceil(expected * SHORTEST_TURN); turn + REPEAT_LOOKS <= looks.length; turn++) {
+    const error = unlikeAt(looks, looks.slice(0, looks.length - turn), turn);
+    const nearer = best !== null && Math.abs(error - best.error) < 0.02 && Math.abs(turn - expected) < Math.abs(best.turn - expected);
+    if (best === null || error < best.error - 0.02 || nearer) best = { turn, error };
   }
-  return null;
+  return best !== null && best.error <= GOOD_REPEAT ? best.turn : null;
+}
+
+/**
+ * How many spins the robot is turned past the start of a full turn of `looks`, from a few
+ * `fresh` looks taken one spin apart: negative when it is short of the start. Null when they
+ * fit nowhere.
+ */
+export function spinsPast(looks, fresh) {
+  const turn = looks.length;
+  const round = [...looks, ...looks, ...looks];
+  let best = null;
+  for (let shift = -Math.floor(turn / 3); shift <= Math.floor(turn / 3); shift++) {
+    const error = unlikeAt(round, fresh, turn + shift);
+    if (best === null || error < best.error - 0.02 || (Math.abs(error - best.error) < 0.02 && Math.abs(shift) < Math.abs(best.shift))) best = { shift, error };
+  }
+  return best !== null && best.error <= GOOD_REPEAT ? best.shift : null;
+}
+
+/**
+ * Turns the real robot (see RobotHub: `range` and `spinReal`) in short spins of `stepMs` for
+ * more than a full turn, looking at every stop, and works out from the looks how many spins the
+ * turn took: the robot cannot measure angles, but it can tell when it sees the same things again.
+ * `expected` is the number of spins a turn should take; turns of up to `longest` times that are
+ * found. The robot is then spun back to where it started.
+ *
+ * Resolves with `{ turn, found, seen }`: the spins in a full turn (`expected` when the looks did
+ * not tell, and then `found` is false) and the looks of that turn as `[{ degrees, range }]`.
+ */
+export async function sweepUntilRepeat(robot, { expected, longest = LONGEST_TURN, stepMs, signal, onStop = () => {}, wait = sleep } = {}) {
+  const most = Math.round(expected * longest) + REPEAT_LOOKS;
+  const looks = [];
+  for (let spin = 0; spin < most; spin++) {
+    signal?.throwIfAborted();
+    if (spin > 0) await robot.spinReal(stepMs, signal);
+    await wait(SETTLE_MS, signal);
+    looks.push(await measure(robot, { signal, wait }));
+    onStop(looks.length, most);
+  }
+  const found = spinsInATurn(looks, expected);
+  const turn = found ?? expected;
+  for (let back = most - 1 - turn; back !== 0; back -= Math.sign(back)) {
+    await robot.spinReal(stepMs, signal, -Math.sign(back));
+    await wait(SETTLE_MS, signal);
+  }
+  return { turn, found: found !== null, seen: looks.slice(0, turn).map((range, spin) => ({ degrees: (spin * 360) / turn, range })) };
+}
+
+/**
+ * Measures what four quarter turns of the real robot really add up to, in degrees. `seen` is a
+ * full turn of looks from `sweepUntilRepeat`, taken where the robot stands: after the four
+ * quarter turns it looks again a few times, and where those looks fit in the full turn tells
+ * how far past the start, or short of it, the robot ended. Null when they fit nowhere.
+ */
+export async function measureQuarters(robot, { seen, stepMs, signal, wait = sleep } = {}) {
+  for (let quarter = 0; quarter < 4; quarter++) {
+    await robot.turn(1, signal);
+    await wait(SETTLE_MS, signal);
+  }
+  const fresh = [];
+  for (let spin = 0; spin < REPEAT_LOOKS; spin++) {
+    if (spin > 0) await robot.spinReal(stepMs, signal);
+    await wait(SETTLE_MS, signal);
+    fresh.push(await measure(robot, { signal, wait }));
+  }
+  for (let spin = 1; spin < REPEAT_LOOKS; spin++) await robot.spinReal(stepMs, signal, -1);
+  const past = spinsPast(seen.map((look) => look.range), fresh);
+  return past === null ? null : 360 + (past * 360) / seen.length;
 }

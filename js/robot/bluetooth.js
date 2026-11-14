@@ -22,8 +22,8 @@ export function listsAllDevices({ userAgent = '', platform = '', maxTouchPoints 
 
 /**
  * Bluetooth Low Energy link to the mBot.
- * Events: `data` (detail: Uint8Array received), `repairing` and `repaired` (the robot went away
- * without being asked to, and came back), and `disconnect`.
+ * Events: `data` (detail: Uint8Array received), `sent` (detail: the bytes written), `repairing`
+ * and `repaired` (the robot went away without being asked to, and came back), and `disconnect`.
  */
 export class BluetoothLink extends EventTarget {
   /** How the link is doing, for a grown-up to read: packets sent and failed, the slowest write, links started again. */
@@ -143,6 +143,7 @@ export class BluetoothLink extends EventTarget {
     try {
       await Promise.race([quick ? writer.writeValueWithoutResponse(bytes) : writer.writeValue(bytes), tooLong]);
       this.health.sent += 1;
+      this.dispatchEvent(new CustomEvent('sent', { detail: bytes }));
       this.health.slowestMs = Math.max(this.health.slowestMs, Math.round(performance.now() - started));
       this.#stuck = 0;
     } catch (error) {

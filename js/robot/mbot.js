@@ -1,5 +1,5 @@
 import { sleep } from '../timing.js';
-import { distanceRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, wheelsPacket } from './protocol.js';
+import { buttonRequest, distanceRequest, lightRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, versionRequest, wheelsPacket } from './protocol.js';
 
 const REPLY_TIMEOUT_MS = 400;
 /** Each question carries a number, so answers are not mixed up when two are waiting. */
@@ -163,6 +163,27 @@ export class MBot {
   async readLine() {
     const seen = await this.#ask(lineRequest);
     return seen === null ? null : Math.round(seen);
+  }
+
+  /** The version of the firmware in the robot, such as "06.01.009", or null. */
+  readVersion() {
+    return this.#ask(versionRequest);
+  }
+
+  /** How much light falls on the board: 0 in the dark, about 1000 in full light. Null if no answer. */
+  readLight() {
+    return this.#ask(lightRequest);
+  }
+
+  /** True while the button on the board is pressed; null if no answer. */
+  async readButton() {
+    const pressed = await this.#ask(buttonRequest);
+    return pressed === null ? null : pressed === 1;
+  }
+
+  /** Sends bytes just as they are, for the command line. */
+  sendRaw(bytes) {
+    return this.#send(Uint8Array.from(bytes));
   }
 
   /** Sends a question made by `request(index)` and waits for its answer, or null if none comes. */
