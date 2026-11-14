@@ -1,3 +1,4 @@
+import { JINGLES } from '../jingles.js';
 import { COLORS, NOTES } from '../robot/palette.js';
 
 export const CATEGORIES = [
@@ -67,6 +68,13 @@ export const BLOCKS = {
     label: 'Tocar a nota',
     options: NOTES.map((note) => ({ value: note.id, label: note.name })),
     defaultValue: 'do',
+  },
+  music: {
+    category: 'sound',
+    icon: '🎶',
+    label: 'Tocar a música',
+    options: JINGLES.map((jingle) => ({ value: jingle.id, label: `${jingle.icon} ${jingle.name}` })),
+    defaultValue: JINGLES[0].id,
   },
   wait: {
     category: 'control',

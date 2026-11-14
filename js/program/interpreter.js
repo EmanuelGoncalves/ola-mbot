@@ -1,3 +1,4 @@
+import { JINGLES, playJingle } from '../jingles.js';
 import { colorById, noteById } from '../robot/palette.js';
 import { sleep } from '../timing.js';
 
@@ -38,6 +39,13 @@ const EXECUTE = {
   async note(block, { robot, signal, wait }) {
     await robot.playTone(noteById(block.value).hz, NOTE_MS);
     await wait(NOTE_MS + BEAT_MS / 2, signal);
+  },
+
+  /** A whole tune, note by note; the program goes on when it ends. */
+  async music(block, { robot, signal, wait }) {
+    const jingle = JINGLES.find((item) => item.id === block.value) ?? JINGLES[0];
+    await playJingle(jingle, robot, { signal, wait });
+    await wait(BEAT_MS, signal);
   },
 
   wait: (block, { signal, wait }) => wait(block.value * 1000, signal),
