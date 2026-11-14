@@ -36,8 +36,9 @@ the one that makes the remote work.
 | Mac, Windows, Chromebook, Android | Chrome or Edge |
 | iPad, iPhone | [Bluefy](https://apps.apple.com/app/id1492822055), a free browser with Web Bluetooth. Safari has none. |
 
-Web Bluetooth only works on `https://` pages (and on `localhost`), so to use an
-iPad the folder has to be published on an HTTPS host such as GitHub Pages.
+Web Bluetooth only works on `https://` pages (and on `localhost`), so for the
+iPad the app is published with GitHub Pages from the `main` branch:
+<https://emanuelgoncalves.github.io/ola-mbot/>. Pushing to `main` updates it.
 
 The mBot has no wheel sensors: a step and a quarter turn are timed motor runs.
 "Ligar ao robô → Afinar o robô" has two sliders to match them to your floor and
