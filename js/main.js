@@ -6,6 +6,7 @@ import { Simulator } from './robot/simulator.js';
 import { loadTuning } from './robot/tuning.js';
 import { load, save } from './storage.js';
 import { T } from './texts.js';
+import { sleep } from './timing.js';
 import { Tutorial } from './tutorial.js';
 import { Connection } from './ui/connection.js';
 import { DriveView } from './ui/drive-view.js';
@@ -15,6 +16,9 @@ import { ProgramView } from './ui/program-view.js';
 import { RemoteView } from './ui/remote-view.js';
 import { createRobotPortrait } from './ui/robot-figure.js';
 import { SchoolView } from './ui/school-view.js';
+
+/** How long the stop button says that everything has stopped. */
+const STOPPED_NOTE_MS = 1200;
 
 /** Tab ids double as the page's #hash, so a tab can be bookmarked. */
 const TABS = [
@@ -60,6 +64,11 @@ function start() {
     driveView.stop();
   };
   const connection = new Connection({ hub, tuning, onOpen: stopRobot });
+  /** The way out when the robot is doing too much at once: ends every activity and starts the robot afresh. */
+  const stopAll = () => {
+    stopRobot();
+    return hub.reset();
+  };
   // The size of a square may have changed in the tuning.
   connection.dialog.addEventListener('close', () => {
     programView.showScale();
@@ -118,6 +127,7 @@ function start() {
       { class: 'top-bar' },
       el('div', { class: 'brand' }, createRobotPortrait().element, el('h1', { text: T.appName })),
       el('nav', { class: 'tabs', role: 'tablist' }, tabButtons),
+      stopAllButton(stopAll),
       soundToggle(beeper),
       connection.button,
     ),
@@ -132,6 +142,20 @@ function start() {
     if (document.hidden) stopRobot();
   });
   showTab(location.hash.slice(1));
+}
+
+/** The red button of the top bar. It says "Parado!" for a moment, so the child sees it worked. */
+function stopAllButton(stopAll) {
+  const label = el('span', { class: 'stop-all-label', text: T.stopAll.label });
+  const button = el('button', { class: 'button button-stop stop-all', type: 'button', 'aria-label': T.stopAll.hint, onClick: stop }, el('span', { 'aria-hidden': 'true', text: '✋' }), label);
+  async function stop() {
+    button.disabled = true;
+    label.textContent = T.stopAll.done;
+    await Promise.all([stopAll(), sleep(STOPPED_NOTE_MS)]);
+    label.textContent = T.stopAll.label;
+    button.disabled = false;
+  }
+  return button;
 }
 
 function soundToggle(beeper) {

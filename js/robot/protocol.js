@@ -9,7 +9,7 @@ export const WRITE_UUID = '0000ffe3-0000-1000-8000-00805f9b34fb';
 
 const HEADER = [0xff, 0x55];
 const LINE_END = [0x0d, 0x0a];
-const Action = { GET: 1, RUN: 2 };
+const Action = { GET: 1, RUN: 2, RESET: 4 };
 const Device = { ULTRASONIC: 1, JOYSTICK: 5, RGB_LED: 8, LINE_FOLLOWER: 17, TONE: 34 };
 const Port = { LINE_FOLLOWER: 2, ULTRASONIC: 3, RGB_LED: 7 };
 const RGB_SLOT = 2;
@@ -38,6 +38,11 @@ export function tonePacket(hz, ms) {
 /** Asks for the ultrasonic distance; the reply carries the same `index`. */
 export function distanceRequest(index) {
   return packet(index, Action.GET, Device.ULTRASONIC, Port.ULTRASONIC);
+}
+
+/** Stops both wheels and the buzzer at once: the firmware's own "reset". */
+export function resetPacket() {
+  return Uint8Array.of(...HEADER, 2, 0, Action.RESET);
 }
 
 /**

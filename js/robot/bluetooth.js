@@ -97,6 +97,13 @@ export class BluetoothLink extends EventTarget {
     });
   }
 
+  /** Forgets the packets that are still waiting to be written. */
+  clear() {
+    for (const packet of this.#outbox.splice(0)) {
+      for (const done of packet.done) done();
+    }
+  }
+
   disconnect() {
     this.#wanted = false;
     this.#device?.gatt?.disconnect();

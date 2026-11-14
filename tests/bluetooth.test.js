@@ -136,3 +136,15 @@ test('bluetooth: disconnecting on purpose is not repaired', async () => {
   equal(events, ['disconnect']);
   equal(robot.connects, 1);
 });
+
+test('bluetooth: clearing forgets the packets that were waiting', async () => {
+  let release;
+  const first = new Promise((resolve) => (release = resolve));
+  let writes = 0;
+  const { robot, link } = await linked({ write: () => (writes++ === 0 ? first : undefined) });
+  const sent = [link.send([1]), link.send([2]), link.send([3], 'wheels')];
+  link.clear();
+  release();
+  await Promise.all(sent);
+  equal(robot.written, [[1]]);
+});

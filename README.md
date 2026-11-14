@@ -215,6 +215,12 @@ the robot beeping and deaf. So `MBot` sends nothing while a note plays or for
 80 ms after a colour change, and of the packets that waited it sends only the
 newest of each kind.
 
+The red "Parar tudo" button of the top bar is the way out when the robot does
+too much at once. It ends every activity in the app, forgets the packets still
+waiting, and sends the firmware's own reset (`ff 55 02 00 04`, which stops the
+motors and the buzzer) three times, in case the robot is in the middle of a
+garbled packet, then puts the lights out.
+
 Following a line, exploring and the radar need the sensors read all the time.
 They ask for the robot's full attention (`hub.focus`): meanwhile the real buzzer
 stays silent (tunes still play on the device) and the real lights change at most

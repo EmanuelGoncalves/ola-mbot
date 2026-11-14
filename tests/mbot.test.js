@@ -1,6 +1,6 @@
 import { MBot } from '../js/robot/mbot.js';
 import { RobotHub } from '../js/robot/hub.js';
-import { lightsPacket, tonePacket, wheelsPacket } from '../js/robot/protocol.js';
+import { lightsPacket, resetPacket, tonePacket, wheelsPacket } from '../js/robot/protocol.js';
 import { DEFAULT_TUNING } from '../js/robot/tuning.js';
 import { equal, test } from './harness.js';
 
@@ -128,4 +128,26 @@ test('hub: a job asks for the real robot\'s full attention, also one connected l
   hub.attach(real);
   hub.focus(false);
   equal(asked, [true, false]);
+});
+
+test('mbot: the reset packet is the firmware\'s own, with no device', () => {
+  equal([...resetPacket()], [0xff, 0x55, 2, 0, 4]);
+});
+
+test('mbot: a reset forgets what was waiting, stops the robot three times over and puts the lights out', async () => {
+  const { link, mbot } = robot();
+  await mbot.playTone(262, 300);
+  const waiting = [mbot.drive(100, 100), mbot.setLights(RED), mbot.playTone(294, 500)];
+  await mbot.reset();
+  await Promise.all(waiting);
+  equal(link.sent, [[...tonePacket(262, 300)], [...resetPacket()], [...resetPacket()], [...resetPacket()], [...lightsPacket([0, 0, 0])]]);
+});
+
+test('hub: a reset stops the robot on screen, puts its lights out and resets the real one', async () => {
+  const done = [];
+  const screen = { stop: () => done.push('stop'), setLights: (color) => done.push(color) };
+  const hub = new RobotHub(screen, {});
+  hub.attach({ focus() {}, reset: async () => done.push('real') });
+  await hub.reset();
+  equal(done, ['stop', null, 'real']);
 });

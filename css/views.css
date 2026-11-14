@@ -3,6 +3,17 @@
   font: inherit;
 }
 
+/* The way out when the robot is doing too much: always in reach */
+.stop-all {
+  padding-inline: 14px;
+}
+
+@media (max-width: 420px) {
+  .stop-all-label {
+    display: none;
+  }
+}
+
 .sound-button {
   padding-inline: 12px;
   font-size: 1.3rem;

@@ -13,6 +13,12 @@ export const T = {
     remote: 'Comando',
   },
 
+  stopAll: {
+    label: 'Parar tudo',
+    done: 'Parado!',
+    hint: 'Parar tudo o que o robô está a fazer',
+  },
+
   sound: {
     on: 'Som ligado',
     off: 'Som desligado',

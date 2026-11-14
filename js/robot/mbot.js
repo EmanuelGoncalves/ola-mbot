@@ -1,5 +1,5 @@
 import { sleep } from '../timing.js';
-import { distanceRequest, lightsPacket, lineRequest, ReplyParser, tonePacket, wheelsPacket } from './protocol.js';
+import { distanceRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, wheelsPacket } from './protocol.js';
 
 const REPLY_TIMEOUT_MS = 400;
 /** Each question carries a number, so answers are not mixed up when two are waiting. */
@@ -21,6 +21,12 @@ const NOTE_MARGIN_MS = 80;
  * travel in the same Bluetooth burst and arrive right then, so nothing is sent for this long.
  */
 const LIGHTS_DEAF_MS = 80;
+/**
+ * A reset is said this many times, this far apart: a robot in the middle of a garbled packet
+ * swallows the first one.
+ */
+const RESET_TIMES = 3;
+const RESET_GAP_MS = 120;
 /** While a job has the robot's full attention, its lights change no more often than this. */
 const ATTENTIVE_LIGHTS_EVERY_MS = 500;
 /** A waiting note goes this much later than the other waiting packets, which it would otherwise keep waiting. */
@@ -99,6 +105,22 @@ export class MBot {
   setLights(color) {
     const notBefore = this.#focused ? this.#lightsSentAt + ATTENTIVE_LIGHTS_EVERY_MS : 0;
     return this.#send(lightsPacket(color?.rgb ?? LIGHTS_OFF), { kind: 'lights', deafMs: LIGHTS_DEAF_MS, notBefore });
+  }
+
+  /**
+   * Starts from a clean slate: forgets everything that was waiting to be sent, then stops the
+   * wheels and the buzzer and switches the lights off.
+   */
+  async reset() {
+    for (const kind of Object.keys(this.#newest)) this.#newest[kind] = {}; // what was waiting is no longer the newest
+    this.#listensAt = 0;
+    this.#focused = false;
+    this.#link.clear?.();
+    for (let time = 0; time < RESET_TIMES; time++) {
+      await this.#link.send(resetPacket());
+      await sleep(RESET_GAP_MS);
+    }
+    await this.setLights(null);
   }
 
   /**

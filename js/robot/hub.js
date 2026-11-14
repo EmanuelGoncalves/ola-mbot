@@ -30,6 +30,14 @@ export class RobotHub {
     mbot.focus(this.#focused);
   }
 
+  /** Stops everything, here and on the real robot, and leaves both ready for new orders. */
+  async reset() {
+    this.#focused = false;
+    this.#simulator.stop();
+    this.#simulator.setLights(null);
+    await this.#real((robot) => robot.reset());
+  }
+
   /**
    * Tells the real robot that a job needs its full attention (see `MBot.focus`), or that it is
    * over. The robot on screen can do everything at once.
