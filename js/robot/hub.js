@@ -1,8 +1,5 @@
 import { isAbort } from '../timing.js';
-import { OUT_OF_SIGHT_CM } from './mbot.js';
-
-/** About how far the mBot's eyes sit in front of the point it turns around. */
-const EYES_AHEAD_CM = 10;
+import { EYES_AHEAD_CM, OUT_OF_SIGHT_CM } from './mbot.js';
 
 /**
  * One robot for the rest of the app: every command goes to the robot on screen
@@ -20,6 +17,11 @@ export class RobotHub {
 
   get connected() {
     return this.#mbot !== null;
+  }
+
+  /** The real mBot, or null: for what only the real robot does, such as exploring a room. */
+  get real() {
+    return this.#mbot;
   }
 
   attach(mbot) {

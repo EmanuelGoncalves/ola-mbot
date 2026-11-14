@@ -6,6 +6,10 @@ const REPLY_TIMEOUT_MS = 400;
 const LAST_INDEX = 250;
 /** The sensor answers 400 cm when it sees nothing, and 0 when it could not measure. */
 export const OUT_OF_SIGHT_CM = 400;
+/** The distance between the mBot's two wheels. */
+const WHEEL_GAP_CM = 11.5;
+/** About how far the eyes sit in front of the point the mBot turns around. */
+export const EYES_AHEAD_CM = 10;
 const SEEK_LIMIT_MS = 8000;
 const SEEK_POLL_MS = 80;
 const LIGHTS_OFF = [0, 0, 0];
@@ -44,10 +48,16 @@ export class MBot {
     return this.drive(0, 0);
   }
 
-  /** Positive steps go forwards, negative go backwards. */
-  move(steps, signal) {
+  /**
+   * Positive steps go forwards, negative go backwards. `bend` turns the robot that many degrees
+   * to the right on the way: one wheel then covers more ground than the other, by the turn
+   * times the gap between them.
+   */
+  move(steps, signal, bend = 0) {
     const speed = Math.sign(steps) * this.#tuning.speed;
-    return this.#driveFor(speed, speed, Math.abs(steps) * this.#tuning.stepMs, signal);
+    const cm = Math.abs(steps) * this.#tuning.cellCm;
+    const extra = cm > 0 ? (((bend * Math.PI) / 180) * WHEEL_GAP_CM) / (2 * cm) : 0;
+    return this.#driveFor(speed * (1 + extra), speed * (1 - extra), Math.abs(steps) * this.#tuning.stepMs, signal);
   }
 
   /** Positive quarter turns go right, negative go left. */

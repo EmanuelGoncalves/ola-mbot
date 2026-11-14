@@ -81,3 +81,10 @@ test('mbot: nothing is sent while a note plays, and then only the newest of each
   await Promise.all(waiting);
   equal(link.sent, [[...tonePacket(262, 40)], [...wheelsPacket(50, 50)], [...tonePacket(330, 40)]]);
 });
+
+test('mbot: a step that bends to the right runs the left wheel faster', async () => {
+  const { link, mbot } = robot({ stepMs: 1 });
+  await mbot.move(1, undefined, 10);
+  const extra = (((10 * Math.PI) / 180) * 11.5) / (2 * 20);
+  equal(link.sent, [[...wheelsPacket(150 * (1 + extra), 150 * (1 - extra))], [...wheelsPacket(0, 0)]]);
+});

@@ -8,7 +8,7 @@ It has six tabs:
 | --- | --- |
 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
-| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, map the room with a 360° radar turn, switch the lights, play the buzzer like a piano, or tap one of twelve jingles. |
+| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, map the room with a 360° radar turn, switch the lights, play the buzzer like a piano, or tap one of twelve jingles. Its **Explorar** part lets the robot find the way out of the room by itself. |
 | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | **Comando** | The infrared remote that comes in the box, button by button. |
@@ -22,8 +22,9 @@ Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 | --- | --- |
 | ![The lessons of the Aprender tab, three of them done](docs/screenshots/aprender.png)<br>**Aprender**: the lessons, in order. | ![A lesson: the robot coach points at the next block to tap](docs/screenshots/licao.png)<br>A lesson: the coach points at what to tap next. |
 | ![The Programar tab with a program of five blocks and the robot's trail on the mat](docs/screenshots/programar.png)<br>**Programar**: blocks, the program and the mat. | ![The Conduzir tab after a radar turn, with rays from the robot to the boxes](docs/screenshots/conduzir.png)<br>**Conduzir**: arrows, and the radar's view of the mat. |
-| ![The labyrinth mission solved, with its star](docs/screenshots/missao.png)<br>**Missões**: the labyrinth, solved. | ![The Escola tab with the Matemática exercises by level](docs/screenshots/escola.png)<br>**Escola**: exercises by subject and level. |
-| ![A Português exercise: a short text, a question and three signs on the mat](docs/screenshots/exercicio.png)<br>An exercise: read, then take the robot to the answer. | ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. |
+| ![The Explorar part of Conduzir: a map of a room with the robot's path along the walls and out through a door 85 cm wide](docs/screenshots/explorar.png)<br>**Explorar**: the robot finds the door by itself. | ![The labyrinth mission solved, with its star](docs/screenshots/missao.png)<br>**Missões**: the labyrinth, solved. |
+| ![The Escola tab with the Matemática exercises by level](docs/screenshots/escola.png)<br>**Escola**: exercises by subject and level. | ![A Português exercise: a short text, a question and three signs on the mat](docs/screenshots/exercicio.png)<br>An exercise: read, then take the robot to the answer. |
+| ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. | |
 
 ## Run it
 
@@ -80,6 +81,34 @@ sees again what it saw at first, and says so when the turn was not a full one.
 It stays a coarse map: turns are timed, not measured, and the cone is about 30°
 wide.
 
+## Finding the way out
+
+"Conduzir → Explorar" makes the robot look for a doorway, 80 cm to 1 m wide, and
+drive through it. Its eyes only look ahead and it cannot measure how far it
+went, so it uses the one thing it can measure well, the distance to a wall it
+faces squarely (`js/robot/explorer.js`):
+
+1. It turns once around and walks to the nearest thing it sees.
+2. It follows that wall, keeping it on its right. After every step it turns to
+   look at the wall, and steers by how the distance changed.
+3. Where the wall is missing it counts the steps. That is a rough width, so any
+   opening that is not clearly too small is tried.
+4. It goes to the middle of the opening, turns in and stands on the wall's line.
+   The distances to the two sides of the frame add up to the true width.
+5. If that is a door, it centres itself, drives through, and checks that the
+   frame is behind it: a passage that goes on between two walls is a corridor.
+
+A corner or a piece of furniture ahead becomes the wall to follow. The end of a
+wall is gone round. After a full lap with no door, it gives up.
+
+A map shows where the robot thinks it is, by dead reckoning, so it bends over
+time. Without an mBot connected, the robot on screen explores one of four
+pretend rooms (`js/robot/room.js`), whose sonar has a wide cone and gets no echo
+from walls seen at a slant. In those rooms the door is found in every test run
+with moves and turns up to 4% off, and in most with 8%. On a real floor expect
+it to be slow (about three seconds a step) and to fail sometimes: a door left
+half open, a rug, or a wide passage will fool it.
+
 ## Layout
 
 ```
@@ -94,7 +123,7 @@ js/school.js          the school exercises, by subject, year and level
 js/jingles.js         short tunes for the buzzer, and their player
 js/remote-guide.js    what each remote button does
 js/program/           block catalogue, program model, interpreter
-js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar
+js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar, explorer and its pretend rooms
 js/ui/                one module per tab, plus shared pieces
 tests/                browser tests
 docs/screenshots/     the pictures in this README
@@ -123,8 +152,8 @@ With the server running, open <http://localhost:8765/tests/>. The page runs the
 protocol, program, interpreter and simulator tests, plays a reference solution
 for every mission and school exercise (forty random rounds of each one that
 draws numbers), checks that every lesson can be finished,
-that the jingles use only the piano's notes, and that the radar averages and
-maps its readings.
+that the jingles use only the piano's notes, that the radar averages and maps
+its readings, and that the explorer finds the door of each pretend room.
 
 ## Protocol
 

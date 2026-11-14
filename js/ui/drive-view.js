@@ -6,6 +6,7 @@ import { distinct, locate, measure, sameSight, sweep } from '../robot/radar.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
+import { ExploreView } from './explore-view.js';
 import { createRobotPortrait } from './robot-figure.js';
 import { StageView } from './stage-view.js';
 
@@ -17,6 +18,11 @@ const SPEEDS = [
 const TURN_FACTOR = 0.7;
 const PIANO_NOTE_MS = 300;
 const EYES_POLL_MS = 200;
+/** The two things to do in this tab: drive by hand, or let the robot explore by itself. */
+const MODES = [
+  { id: 'drive', icon: '🕹️' },
+  { id: 'explore', icon: '🧭' },
+];
 
 /** Wheel directions (left, right) for each arrow, and the keyboard key that does the same. */
 const DIRECTIONS = [
@@ -26,7 +32,10 @@ const DIRECTIONS = [
   { id: 'backward', icon: '▼', wheels: [-1, -1], key: 'ArrowDown' },
 ];
 
-/** The "Conduzir" tab: hold an arrow to drive, map the room, tap lights, piano keys and jingles. */
+/**
+ * The "Conduzir" tab: hold an arrow to drive, map the room, tap lights, piano keys and jingles.
+ * Its "Explorar" part (see ExploreView) lets the robot look for the way out of the room.
+ */
 export class DriveView {
   #hub;
   #simulator;
@@ -52,6 +61,9 @@ export class DriveView {
   #scanButton = el('button', { class: 'button', type: 'button', onClick: () => this.#scanRoom() });
   #mapStatus = el('p', { class: 'hint map-status', 'aria-live': 'polite' });
   #scale = el('p', { class: 'hint' });
+  #explore;
+  /** The panels of each mode, and the button that shows them. */
+  #modes;
 
   /** `onFreePlay` closes any lesson or mission, so the mat is the child's own. */
   constructor({ hub, simulator, tuning, onFreePlay }) {
@@ -134,6 +146,18 @@ export class DriveView {
       ),
     );
 
+    const [mat, controls] = this.element.children;
+    mat.classList.add('drive-mat');
+    this.#explore = new ExploreView({ hub, tuning });
+    this.#modes = MODES.map((mode) => ({
+      ...mode,
+      panels: mode.id === 'drive' ? [mat, controls] : [this.#explore.mapPanel, this.#explore.controlPanel],
+      button: el('button', { class: 'button', type: 'button', onClick: () => this.#showMode(mode.id) }, `${mode.icon} ${T.drive.modes[mode.id]}`),
+    }));
+    this.element.prepend(el('div', { class: 'choice drive-modes', role: 'group', 'aria-label': T.drive.modesLabel }, this.#modes.map((mode) => mode.button)));
+    this.element.append(this.#explore.mapPanel, this.#explore.controlPanel);
+    this.#showMode('drive');
+
     document.addEventListener('keydown', (event) => this.#onKey(event, true));
     document.addEventListener('keyup', (event) => this.#onKey(event, false));
     // A key let go while another window is in front never tells us: let go of the arrows when the window loses focus.
@@ -147,12 +171,22 @@ export class DriveView {
     this.showScale();
   }
 
-  /** Lets go of every arrow, stops the robot, the radar and the jingle. */
+  /** Lets go of every arrow, stops the robot, the radar, the exploring and the jingle. */
   stop() {
     this.#held = [];
+    this.#explore.stop();
     this.#scan?.abort();
     this.#playing?.abort.abort();
     this.#hub.stop();
+  }
+
+  /** Shows driving by hand or exploring; whatever the robot was doing in the other one stops. */
+  #showMode(id) {
+    this.stop();
+    for (const mode of this.#modes) {
+      mode.button.setAttribute('aria-pressed', String(mode.id === id));
+      for (const panel of mode.panels) panel.hidden = mode.id !== id;
+    }
   }
 
   /** Says how big a square of the mat is on the floor. */
@@ -354,7 +388,7 @@ export class DriveView {
     this.#eyesWatching = true;
     while (this.#eyesOn) {
       const showing = !document.hidden && !this.element.closest('[hidden]');
-      if (showing && !this.#scan) this.#seen(await this.#hub.look());
+      if (showing && !this.#scan && !this.#explore.exploring) this.#seen(await this.#hub.look());
       await sleep(EYES_POLL_MS);
     }
     this.#eyesWatching = false;
@@ -374,7 +408,7 @@ export class DriveView {
   /** Arrow keys drive too, for computers with a keyboard. */
   #onKey(event, pressed) {
     const direction = DIRECTIONS.find((item) => item.key === event.key);
-    const elsewhere = this.element.closest('[hidden]') || event.target.closest?.('input, dialog');
+    const elsewhere = this.element.closest('[hidden]') || this.#modes[0].panels[0].hidden || event.target.closest?.('input, dialog');
     if (!direction || event.repeat || elsewhere) return;
     event.preventDefault();
     this.#hold(direction, pressed);

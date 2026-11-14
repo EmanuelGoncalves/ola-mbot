@@ -28,15 +28,89 @@
 
 /* Where the app fills the screen, the mat stays put while the controls scroll */
 @media (min-width: 700px) and (min-height: 560px) {
-  .drive-view > .panel:first-child {
+  .drive-view > .drive-mat,
+  .drive-view > .explore-map-panel {
     position: sticky;
     top: 0;
   }
 
-  .drive-view .stage {
+  .drive-view .stage,
+  .explore-map {
     align-self: center;
-    width: min(100%, max(200px, 100dvh - 230px));
+    width: min(100%, max(200px, 100dvh - 300px));
   }
+}
+
+/* Conduzir or Explorar */
+.drive-modes {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+/* Explorar: the map of where the robot thinks it has been */
+.explore-map {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+}
+
+.explore-floor {
+  fill: var(--mat);
+}
+
+.explore-wall {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.explore-hit {
+  fill: var(--stop);
+  opacity: 0.7;
+}
+
+.explore-path {
+  fill: none;
+  stroke: var(--trail);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+}
+
+.explore-door {
+  fill: none;
+  stroke: var(--go);
+  stroke-width: 5;
+}
+
+.explore-door-label {
+  fill: var(--ink);
+  font: 800 20px var(--font-display);
+  text-anchor: middle;
+}
+
+/* The robot's plan, with the step it is on */
+.explore-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 1.6em;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.explore-plan li {
+  padding: 4px 10px;
+  border-radius: var(--radius-small);
+}
+
+.explore-plan .is-current {
+  background: var(--coach);
+  color: var(--ink);
+  outline: 2px solid var(--coach-edge);
 }
 
 .drive-group {
