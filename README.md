@@ -8,7 +8,7 @@ It has five tabs:
 | --- | --- |
 | **Aprender** | The tutorial: seven short lessons. The robot says what to do and points at what to tap. |
 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. |
-| **Conduzir** | Drive with arrows, switch the lights, play the buzzer like a piano, or tap one of six jingles. |
+| **Conduzir** | Drive with arrows, let the robot's eyes stop it before it bumps, switch the lights, play the buzzer like a piano, or tap one of twelve jingles. |
 | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
 | **Comando** | The infrared remote that comes in the box, button by button. |
 
@@ -42,7 +42,8 @@ iPad the app is published with GitHub Pages from the `main` branch:
 
 The mBot has no wheel sensors: a step and a quarter turn are timed motor runs.
 "Ligar ao robô → Afinar o robô" has two sliders to match them to your floor and
-batteries.
+batteries. It also has two switches for a robot that drives or turns the wrong
+way, which happens when the two motors were plugged into each other's sockets.
 
 ## Layout
 

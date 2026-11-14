@@ -139,7 +139,25 @@ export class Connection {
       el('p', { class: 'hint', text: T.connection.tuningIntro }),
       this.#slider('stepMs', T.connection.stepTime, T.connection.testStep, (signal) => this.#hub.move(1, signal)),
       this.#slider('quarterTurnMs', T.connection.turnTime, T.connection.testTurn, (signal) => this.#hub.turn(1, signal)),
+      el('p', { class: 'hint', text: T.connection.flipIntro }),
+      this.#flip('flipDrive', T.connection.flipDrive),
+      this.#flip('flipTurn', T.connection.flipTurn),
     );
+  }
+
+  /** A switch for a real robot that goes the wrong way. */
+  #flip(name, label) {
+    const id = `tuning-${name}`;
+    const input = el('input', {
+      id,
+      type: 'checkbox',
+      checked: this.#tuning[name],
+      onChange: () => {
+        this.#tuning[name] = input.checked;
+        saveTuning(this.#tuning);
+      },
+    });
+    return el('label', { class: 'tuning-check', for: id }, input, label);
   }
 
   #slider(name, label, testLabel, test) {

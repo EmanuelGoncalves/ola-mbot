@@ -1,8 +1,9 @@
 import { el } from '../dom.js';
 import { JINGLES, playJingle } from '../jingles.js';
 import { COLORS, NOTES } from '../robot/palette.js';
+import { load, save } from '../storage.js';
 import { T } from '../texts.js';
-import { isAbort } from '../timing.js';
+import { isAbort, sleep } from '../timing.js';
 import { createRobotPortrait } from './robot-figure.js';
 import { StageView } from './stage-view.js';
 
@@ -13,6 +14,9 @@ const SPEEDS = [
 ];
 const TURN_FACTOR = 0.7;
 const PIANO_NOTE_MS = 300;
+const EYES_POLL_MS = 200;
+/** The real sensor answers 400 cm when it sees nothing. */
+const OUT_OF_SIGHT_CM = 400;
 
 /** Wheel directions (left, right) for each arrow, and the keyboard key that does the same. */
 const DIRECTIONS = [
@@ -32,6 +36,12 @@ export class DriveView {
   #playing = null;
   #pianoKeys = new Map();
   #jingleButtons = new Map();
+  /** "Parar antes de bater": the eyes stop the robot from driving into things. */
+  #eyesOn = load('eyes', false);
+  #eyesWatching = false;
+  #blocked = false;
+  #eyesButton = el('button', { class: 'button', type: 'button', onClick: () => this.#setEyes(!this.#eyesOn) }, '👀 ', T.drive.eyesToggle);
+  #eyesStatus = el('p', { class: 'hint eyes-status' });
 
   constructor({ hub, simulator }) {
     this.#hub = hub;
@@ -56,6 +66,7 @@ export class DriveView {
         el('p', { class: 'hint', text: T.drive.hint }),
         el('div', { class: 'pad' }, DIRECTIONS.map((direction) => this.#arrow(direction)), el('div', { class: 'pad-centre' }, portrait.element)),
         this.#speedChooser(),
+        el('div', { class: 'drive-group' }, el('h3', { text: T.drive.eyes }), el('div', { class: 'row' }, this.#eyesButton, this.#eyesStatus)),
         el(
           'div',
           { class: 'drive-group' },
@@ -97,6 +108,7 @@ export class DriveView {
 
     document.addEventListener('keydown', (event) => this.#onKey(event, true));
     document.addEventListener('keyup', (event) => this.#onKey(event, false));
+    this.#setEyes(this.#eyesOn);
   }
 
   /** Lets go of every arrow, stops the robot and the jingle. */
@@ -198,8 +210,46 @@ export class DriveView {
   #hold(direction, pressed) {
     this.#held = this.#held.filter((item) => item !== direction);
     if (pressed) this.#held.push(direction);
-    const [left, right] = this.#held.at(-1)?.wheels ?? [0, 0];
+    this.#applyDrive();
+  }
+
+  /** Drives as the newest pressed arrow says; with the eyes on, not forwards into an obstacle. */
+  #applyDrive() {
+    const direction = this.#held.at(-1);
+    const braking = this.#eyesOn && this.#blocked && direction?.id === 'forward';
+    const [left, right] = direction && !braking ? direction.wheels : [0, 0];
     this.#hub.drive(left * this.#speed, right * this.#speed);
+  }
+
+  #setEyes(on) {
+    this.#eyesOn = on;
+    save('eyes', on);
+    this.#eyesButton.setAttribute('aria-pressed', String(on));
+    this.#seen({ blocked: false, cm: null });
+    if (on) this.#watch();
+  }
+
+  /** Looks ahead a few times a second while the eyes are on and this tab is showing. */
+  async #watch() {
+    if (this.#eyesWatching) return;
+    this.#eyesWatching = true;
+    while (this.#eyesOn) {
+      const showing = !document.hidden && !this.element.closest('[hidden]');
+      if (showing) this.#seen(await this.#hub.look());
+      await sleep(EYES_POLL_MS);
+    }
+    this.#eyesWatching = false;
+  }
+
+  /** Shows what the eyes see and brakes or lets go as it changes. */
+  #seen({ blocked, cm }) {
+    const inSight = cm !== null && cm > 0 && cm < OUT_OF_SIGHT_CM;
+    const sight = `${blocked ? T.drive.eyesBlocked : T.drive.eyesClear}${inSight ? ` ${T.drive.eyesDistance(cm)}` : ''}`;
+    this.#eyesStatus.textContent = this.#eyesOn ? sight : T.drive.eyesOff;
+    this.#eyesStatus.classList.toggle('is-blocked', this.#eyesOn && blocked);
+    if (blocked === this.#blocked) return;
+    this.#blocked = blocked;
+    this.#applyDrive();
   }
 
   /** Arrow keys drive too, for computers with a keyboard. */

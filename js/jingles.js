@@ -8,23 +8,24 @@ const SOUNDING = 0.85;
 /**
  * Short tunes for the buzzer. They use only the eight notes of the piano, so a
  * child can copy them with «Tocar a nota» blocks. Each note is [note id, beats].
- * The first three were written for this app; the others are traditional tunes.
+ * Those marked "original" were written for this app; the others are the opening
+ * lines of traditional tunes, old enough to be free for everyone to play.
  */
 export const JINGLES = [
   {
-    id: 'hello',
+    id: 'hello', // original
     icon: '👋',
     name: 'Olá, mBot!',
     notes: [['do', 1], ['mi', 1], ['sol', 1], ['do2', 2], ['sol', 1], ['do2', 3]],
   },
   {
-    id: 'victory',
+    id: 'victory', // original
     icon: '🏆',
     name: 'Vitória',
     notes: [['sol', 0.5], ['sol', 0.5], ['sol', 0.5], ['do2', 2], ['la', 0.5], ['si', 0.5], ['do2', 3]],
   },
   {
-    id: 'robot-dance',
+    id: 'robot-dance', // original
     icon: '🤖',
     name: 'Dança do robô',
     notes: [
@@ -32,6 +33,15 @@ export const JINGLES = [
       ['fa', 1], ['la', 0.5], ['la', 0.5], ['sol', 2],
       ['do2', 1], ['si', 0.5], ['la', 0.5], ['sol', 1], ['mi', 1],
       ['re', 1], ['sol', 1], ['do', 2],
+    ],
+  },
+  {
+    id: 'space', // original
+    icon: '🚀',
+    name: 'Aventura no espaço',
+    notes: [
+      ['do', 1], ['sol', 1], ['mi', 1], ['sol', 1], ['do2', 2], ['la', 1], ['sol', 1],
+      ['fa', 1], ['la', 1], ['sol', 1], ['mi', 1], ['re', 1], ['sol', 1], ['do2', 3],
     ],
   },
   {
@@ -59,6 +69,58 @@ export const JINGLES = [
     notes: [
       ['mi', 1], ['mi', 1], ['mi', 2], ['mi', 1], ['mi', 1], ['mi', 2],
       ['mi', 1], ['sol', 1], ['do', 1.5], ['re', 0.5], ['mi', 4],
+    ],
+  },
+  {
+    id: 'birthday',
+    icon: '🎂',
+    name: 'Parabéns a você',
+    notes: [
+      ['do', 0.75], ['do', 0.25], ['re', 1], ['do', 1], ['fa', 1], ['mi', 2],
+      ['do', 0.75], ['do', 0.25], ['re', 1], ['do', 1], ['sol', 1], ['fa', 2],
+    ],
+  },
+  {
+    id: 'frere-jacques',
+    icon: '🛎️',
+    name: 'Frère Jacques',
+    notes: [
+      ['do', 1], ['re', 1], ['mi', 1], ['do', 1], ['do', 1], ['re', 1], ['mi', 1], ['do', 1],
+      ['mi', 1], ['fa', 1], ['sol', 2], ['mi', 1], ['fa', 1], ['sol', 2],
+      ['sol', 0.5], ['la', 0.5], ['sol', 0.5], ['fa', 0.5], ['mi', 1], ['do', 1],
+      ['sol', 0.5], ['la', 0.5], ['sol', 0.5], ['fa', 0.5], ['mi', 1], ['do', 2],
+    ],
+  },
+  {
+    id: 'can-can',
+    icon: '💃',
+    name: 'Cancã',
+    notes: [
+      ['do', 1], ['re', 0.5], ['fa', 0.5], ['mi', 0.5], ['re', 0.5], ['sol', 1], ['sol', 1],
+      ['sol', 0.5], ['la', 0.5], ['mi', 0.5], ['fa', 0.5], ['re', 1], ['re', 1],
+      ['re', 0.5], ['fa', 0.5], ['mi', 0.5], ['re', 0.5], ['do', 0.5], ['do2', 0.5], ['si', 0.5], ['la', 0.5],
+      ['sol', 0.5], ['fa', 0.5], ['mi', 0.5], ['re', 0.5], ['do', 2],
+    ],
+  },
+  {
+    id: 'cucaracha',
+    icon: '🌵',
+    name: 'La Cucaracha',
+    notes: [
+      ['do', 0.5], ['do', 0.5], ['do', 0.5], ['fa', 1.5], ['la', 1],
+      ['do', 0.5], ['do', 0.5], ['do', 0.5], ['fa', 1.5], ['la', 1],
+      ['fa', 1], ['fa', 0.5], ['mi', 0.5], ['mi', 0.5], ['re', 0.5], ['re', 0.5], ['do', 2],
+    ],
+  },
+  {
+    id: 'susanna',
+    icon: '🪕',
+    name: 'Oh! Susana',
+    notes: [
+      ['do', 0.5], ['re', 0.5], ['mi', 1], ['sol', 1], ['sol', 1.5], ['la', 0.5], ['sol', 1], ['mi', 1], ['do', 1.5], ['re', 0.5],
+      ['mi', 1], ['mi', 1], ['re', 1], ['do', 1], ['re', 3],
+      ['do', 0.5], ['re', 0.5], ['mi', 1], ['sol', 1], ['sol', 1.5], ['la', 0.5], ['sol', 1], ['mi', 1], ['do', 1.5], ['re', 0.5],
+      ['mi', 1], ['mi', 1], ['re', 1], ['re', 1], ['do', 3],
     ],
   },
 ];

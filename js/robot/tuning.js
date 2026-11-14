@@ -3,8 +3,9 @@ import { load, save } from '../storage.js';
 /**
  * The mBot has no wheel sensors, so a step and a turn are timed motor runs.
  * These times are shared by the real robot and the one on screen.
+ * `flipDrive` and `flipTurn` put right a real robot whose motors were plugged in the other way round.
  */
-export const DEFAULT_TUNING = Object.freeze({ speed: 150, stepMs: 600, quarterTurnMs: 420 });
+export const DEFAULT_TUNING = Object.freeze({ speed: 150, stepMs: 600, quarterTurnMs: 420, flipDrive: false, flipTurn: false });
 
 export const TUNING_LIMITS = Object.freeze({
   stepMs: { min: 300, max: 1500, step: 20 },
@@ -16,5 +17,6 @@ export function loadTuning() {
 }
 
 export function saveTuning(tuning) {
-  save('tuning', { stepMs: tuning.stepMs, quarterTurnMs: tuning.quarterTurnMs });
+  const { stepMs, quarterTurnMs, flipDrive, flipTurn } = tuning;
+  save('tuning', { stepMs, quarterTurnMs, flipDrive, flipTurn });
 }

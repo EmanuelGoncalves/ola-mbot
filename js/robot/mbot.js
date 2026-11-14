@@ -23,7 +23,10 @@ export class MBot {
 
   /** Wheel speeds from −255 to 255; positive is forwards. */
   drive(left, right) {
-    return this.#link.send(wheelsPacket(left, right));
+    const { flipDrive, flipTurn } = this.#tuning;
+    const ahead = ((left + right) / 2) * (flipDrive ? -1 : 1);
+    const spin = ((left - right) / 2) * (flipTurn ? -1 : 1);
+    return this.#link.send(wheelsPacket(ahead + spin, ahead - spin));
   }
 
   stop() {
@@ -66,9 +69,14 @@ export class MBot {
     setTimeout(() => this.#link.send(tonePacket(0, 0)).catch(() => {}), ms);
   }
 
-  async obstacleAhead() {
+  /** What the ultrasonic "eyes" see: `{ blocked, cm }`, or null if the robot did not answer. */
+  async look() {
     const cm = await this.readDistance();
-    return cm !== null && cm > 0 && cm < OBSTACLE_CM;
+    return cm === null ? null : { blocked: cm > 0 && cm < OBSTACLE_CM, cm };
+  }
+
+  async obstacleAhead() {
+    return (await this.look())?.blocked ?? false;
   }
 
   /** Distance seen by the ultrasonic sensor in cm, or null if the robot did not answer. */

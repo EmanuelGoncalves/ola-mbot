@@ -52,16 +52,24 @@ export class RobotHub {
     return this.#both((robot) => robot.stop());
   }
 
-  /** The real robot's eyes win when it is connected. */
-  async obstacleAhead() {
+  /**
+   * What the robot sees ahead: `{ blocked, cm }`. The real robot's eyes win
+   * when it is connected and answers; on screen there is no distance (`cm` is null).
+   */
+  async look() {
     if (this.#mbot) {
       try {
-        return await this.#mbot.obstacleAhead();
+        const seen = await this.#mbot.look();
+        if (seen) return seen;
       } catch (error) {
         console.warn('mBot sensor read failed', error);
       }
     }
-    return this.#simulator.obstacleAhead();
+    return { blocked: this.#simulator.obstacleAhead(), cm: null };
+  }
+
+  async obstacleAhead() {
+    return (await this.look()).blocked;
   }
 
   async #both(command) {

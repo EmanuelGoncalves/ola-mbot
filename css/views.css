@@ -131,6 +131,15 @@
   color: var(--cat-sound-ink);
 }
 
+.eyes-status {
+  flex: 1 1 140px;
+  font-weight: 700;
+}
+
+.eyes-status.is-blocked {
+  color: var(--stop);
+}
+
 .jingles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -371,6 +380,22 @@
 
 .tuning-row .button {
   justify-self: start;
+}
+
+.tuning-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tuning-check input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  accent-color: var(--brand);
 }
 
 @media (prefers-reduced-motion: reduce) {
