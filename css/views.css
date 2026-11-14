@@ -136,6 +136,14 @@
   font-weight: 700;
 }
 
+.map-status {
+  font-weight: 700;
+}
+
+.map-status:empty {
+  display: none;
+}
+
 .eyes-status.is-blocked {
   color: var(--stop);
 }

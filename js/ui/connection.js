@@ -46,12 +46,15 @@ export class Connection {
       this.#tuningSection(),
       el('button', { class: 'button', type: 'button', onClick: () => this.dialog.close() }, T.connection.close),
     );
-    // A tap on the backdrop closes the dialog.
+    // A tap on the backdrop closes the dialog; a tap on its padding does not.
     this.dialog.addEventListener('click', (event) => {
-      if (event.target === this.dialog) this.dialog.close();
+      const { left, right, top, bottom } = this.dialog.getBoundingClientRect();
+      const inside = event.clientX >= left && event.clientX <= right && event.clientY >= top && event.clientY <= bottom;
+      if (event.target === this.dialog && !inside) this.dialog.close();
     });
     this.dialog.addEventListener('close', () => this.#test?.abort());
     this.#link.addEventListener('disconnect', () => {
+      this.#test?.abort();
       this.#hub.detach();
       this.#setState(State.LOST);
     });
@@ -210,7 +213,8 @@ export class Connection {
     };
     if (!this.#hub.connected) return report(T.connection.fitNeedsRobot);
     const squares = await measureStep(this.#hub, { signal });
-    if (squares === null || squares < SHORTEST_STEP) return report(T.connection.fitFailed);
+    // If the mBot went away half-way, part of the measurement came from the robot on screen.
+    if (!this.#hub.connected || squares === null || squares < SHORTEST_STEP) return report(T.connection.fitFailed);
     const { min, max, step } = TUNING_LIMITS.stepMs;
     const fitted = Math.round(this.#tuning.stepMs / squares / step) * step;
     this.#set('stepMs', Math.max(min, Math.min(max, fitted)));

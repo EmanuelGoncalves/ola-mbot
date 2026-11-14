@@ -43,8 +43,9 @@ export class Simulator extends EventTarget {
     this.reset();
   }
 
-  /** Puts the robot back on its starting cell and wipes the trail. */
+  /** Puts the robot back on its starting cell and wipes the trail and what the radar saw. */
   reset() {
+    this.showSightings([]);
     this.pose = { ...WORLD.start };
     this.lights = null;
     this.trail = [{ x: this.pose.x, y: this.pose.y }];
@@ -61,7 +62,6 @@ export class Simulator extends EventTarget {
     this.goal = goal;
     this.signs = signs.map(([x, y, text]) => ({ x, y, text }));
     this.dispatchEvent(new Event('world'));
-    this.showSightings([]);
     this.reset();
   }
 

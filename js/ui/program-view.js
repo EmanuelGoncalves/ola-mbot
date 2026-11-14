@@ -11,7 +11,7 @@ import { StageView } from './stage-view.js';
 
 const FREE_PLAY = 'free';
 
-/** The "Programar" tab: blocks, the program, the mat and the run buttons. */
+/** The "Programar" tab: the lesson coach or the mission on top, then blocks, the program, the mat and the run buttons. */
 export class ProgramView {
   #program = new Program();
   #editor = new ProgramEditor(this.#program);
@@ -65,7 +65,6 @@ export class ProgramView {
     this.#stagePanel = el(
       'section',
       { class: 'panel stage-panel' },
-      this.#missionBanner,
       this.#stage.element,
       el('div', { class: 'bubble', 'aria-live': 'polite' }, this.#message, this.#messageAction),
       el('div', { class: 'row' }, this.#runButton, this.#stopButton, this.#homeButton),
@@ -86,7 +85,7 @@ export class ProgramView {
       onPlay: onPlayLesson,
       onShowMissions,
     });
-    this.element.prepend(this.#coach.element);
+    this.element.prepend(this.#coach.element, this.#missionBanner);
 
     this.#load();
     this.#program.addEventListener('change', () => {
@@ -117,6 +116,7 @@ export class ProgramView {
       this.#say(T.program.empty);
       return;
     }
+    const slot = this.#slot;
     this.#abort = new AbortController();
     this.#setRunning(true);
     this.#simulator.reset();
@@ -130,7 +130,7 @@ export class ProgramView {
       this.#finish();
     } catch (error) {
       if (!isAbort(error)) throw error;
-      this.#say(T.program.stopped);
+      if (slot === this.#slot) this.#say(T.program.stopped); // otherwise something else was opened, with its own message
     } finally {
       this.#abort = null;
       this.#editor.highlight(null);
@@ -230,8 +230,7 @@ export class ProgramView {
         { class: 'mission-banner-text' },
         el('p', { class: 'mission-banner-label', text: `${mission.icon} ${mission.label ?? T.mission.label}${earned ? ' ⭐' : ''}` }),
         el('h3', { text: mission.title }),
-        mission.text && el('p', { class: 'mission-story', text: mission.text }),
-        el('p', { text: mission.goal }),
+        el('div', { class: 'mission-ask' }, mission.text && el('p', { class: 'mission-story', text: mission.text }), el('p', { text: mission.goal })),
       ),
       el(
         'div',

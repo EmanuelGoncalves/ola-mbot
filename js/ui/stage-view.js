@@ -1,5 +1,6 @@
 import { svg } from '../dom.js';
 import { WORLD } from '../robot/simulator.js';
+import { T } from '../texts.js';
 import { createRobotFigure } from './robot-figure.js';
 
 const CELL = 100;
@@ -21,6 +22,7 @@ export class StageView {
   editable = true;
 
   #simulator;
+  #label;
   #signs = svg('g');
   #boxes = svg('g');
   #sightings = svg('g');
@@ -31,6 +33,7 @@ export class StageView {
 
   constructor(simulator, label) {
     this.#simulator = simulator;
+    this.#label = label;
     const { cols, rows } = WORLD;
     this.element = svg(
       'svg',
@@ -65,6 +68,9 @@ export class StageView {
 
   #drawWorld() {
     const { boxes, goal, signs } = this.#simulator;
+    // The signs hold the possible answers, so they are read out with the picture's name.
+    const words = signs.length > 0 ? ` ${T.program.signs(signs.map((sign) => sign.text))}` : '';
+    this.element.setAttribute('aria-label', `${this.#label}.${words}`);
     this.#signs.replaceChildren(
       ...signs.flatMap(({ x, y, text }) => {
         const { size, width, left } = signPlate(x, text);

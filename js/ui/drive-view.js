@@ -47,8 +47,10 @@ export class DriveView {
   #eyesStatus = el('p', { class: 'hint eyes-status' });
   /** The radar turn in progress, if any. */
   #scan = null;
+  /** Settles when the radar turn in progress, if any, is over. */
+  #scanDone = Promise.resolve();
   #scanButton = el('button', { class: 'button', type: 'button', onClick: () => this.#scanRoom() });
-  #mapStatus = el('p', { class: 'hint eyes-status', 'aria-live': 'polite' });
+  #mapStatus = el('p', { class: 'hint map-status', 'aria-live': 'polite' });
   #scale = el('p', { class: 'hint' });
 
   /** `onFreePlay` closes any lesson or mission, so the mat is the child's own. */
@@ -69,7 +71,7 @@ export class DriveView {
         'section',
         { class: 'panel' },
         stage.element,
-        el('div', { class: 'row' }, el('button', { class: 'button', type: 'button', onClick: () => simulator.reset() }, '🏠 ', T.drive.home)),
+        el('div', { class: 'row' }, el('button', { class: 'button', type: 'button', onClick: () => this.#goHome() }, '🏠 ', T.drive.home)),
         this.#scale,
       ),
       el(
@@ -134,6 +136,12 @@ export class DriveView {
 
     document.addEventListener('keydown', (event) => this.#onKey(event, true));
     document.addEventListener('keyup', (event) => this.#onKey(event, false));
+    // A key let go while another window is in front never tells us: let go of the arrows when the window loses focus.
+    window.addEventListener('blur', () => {
+      if (this.#held.length === 0) return;
+      this.#held = [];
+      this.#applyDrive();
+    });
     this.#setEyes(this.#eyesOn);
     this.#showScanning(false);
     this.showScale();
@@ -156,15 +164,16 @@ export class DriveView {
    * The radar: the robot turns once around and looks at every stop. What the real
    * mBot sees becomes the boxes of the mat; the robot on screen only shows what it sees.
    */
-  async #scanRoom() {
-    if (this.#scan) {
-      this.#scan.abort();
-      return;
-    }
+  #scanRoom() {
+    if (this.#scan) this.#scan.abort();
+    else this.#scanDone = this.#sweepRoom();
+  }
+
+  async #sweepRoom() {
     this.stop();
-    this.#onFreePlay();
     const scan = new AbortController();
     const real = this.#hub.connected;
+    if (real) this.#onFreePlay(); // the mat is about to change
     const pose = { ...this.#simulator.pose };
     let stops = 0;
     this.#scan = scan;
@@ -181,8 +190,14 @@ export class DriveView {
           this.#simulator.showSightings([...this.#simulator.sightings, { from: pose, to: locate(pose, reading).spot }]);
         },
       });
-      if (real) this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
-      this.#mapStatus.textContent = real ? T.drive.mapFound(this.#simulator.boxes.length) : T.drive.mapOnScreen;
+      if (!real) {
+        this.#mapStatus.textContent = T.drive.mapOnScreen;
+      } else if (this.#hub.connected) {
+        this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
+        this.#mapStatus.textContent = T.drive.mapFound(this.#simulator.boxes.length);
+      } else {
+        this.#mapStatus.textContent = T.drive.mapStopped; // the mBot went away half-way: the readings cannot be trusted
+      }
     } catch (error) {
       if (!isAbort(error)) throw error;
       this.#mapStatus.textContent = T.drive.mapStopped;
@@ -193,12 +208,19 @@ export class DriveView {
     }
   }
 
+  /** Puts the robot on screen back on its starting square; a radar turn would no longer match. */
+  #goHome() {
+    this.#scan?.abort();
+    this.#simulator.reset();
+  }
+
   #showScanning(scanning) {
     this.#scanButton.textContent = scanning ? `■ ${T.drive.mapStop}` : `🗺️ ${T.drive.mapScan}`;
   }
 
-  #clearMap() {
+  async #clearMap() {
     this.stop();
+    await this.#scanDone.catch(() => {});
     this.#onFreePlay();
     this.#simulator.setBoxes([]);
     this.#simulator.showSightings([]);
@@ -206,7 +228,11 @@ export class DriveView {
   }
 
   #pianoKey(note) {
-    const key = el('button', { class: 'piano-key', type: 'button', onClick: () => this.#hub.playTone(note.hz, PIANO_NOTE_MS) }, note.name.split(' ')[0]);
+    const key = el(
+      'button',
+      { class: 'piano-key', type: 'button', 'aria-label': note.name, onClick: () => this.#hub.playTone(note.hz, PIANO_NOTE_MS) },
+      note.name.split(' ')[0],
+    );
     this.#pianoKeys.set(note.id, key);
     return key;
   }
@@ -337,7 +363,7 @@ export class DriveView {
     this.#eyesStatus.classList.toggle('is-blocked', this.#eyesOn && blocked);
     if (blocked === this.#blocked) return;
     this.#blocked = blocked;
-    this.#applyDrive();
+    if (this.#held.length > 0) this.#applyDrive(); // with no arrow held, the robot is not ours to stop
   }
 
   /** Arrow keys drive too, for computers with a keyboard. */

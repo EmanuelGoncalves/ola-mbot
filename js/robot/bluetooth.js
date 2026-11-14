@@ -35,7 +35,8 @@ export class BluetoothLink extends EventTarget {
       this.#writer = await service.getCharacteristic(WRITE_UUID);
     } catch (error) {
       device.gatt.disconnect(); // do not leave a half-open connection behind
-      throw error;
+      // Not the error's own name: a missing service is a NotFoundError, like a closed chooser.
+      throw new Error(`${error.name}: ${error.message}`, { cause: error });
     }
     this.#device = device;
     device.addEventListener('gattserverdisconnected', this.#onDisconnect);

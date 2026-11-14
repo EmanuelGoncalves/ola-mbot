@@ -1,4 +1,5 @@
 import { colorById } from './robot/palette.js';
+import { WORLD } from './robot/simulator.js';
 
 export const SUBJECTS = [
   { id: 'math', icon: '🔢', name: 'Matemática' },
@@ -16,14 +17,22 @@ export const YEARS = [2];
 
 // What the robot must have done at the end of the program.
 const onSign = (text) => (blocks, robot) => robot.signHere() === text;
-const at = (x, y) => (blocks, robot) => robot.cell.x === x && robot.cell.y === y;
+/** Exactly `steps` squares straight ahead of the start; bumping into the edge of the mat does not count. */
+const ahead = (steps) => (blocks, robot) => robot.cell.x === WORLD.start.x && robot.cell.y === WORLD.start.y - steps && robot.bumps === 0;
+/** True when the robot went through the middle of this square on its way. */
+const passed = (x, y) => (blocks, robot) => robot.trail.some((point) => Math.hypot(point.x - x, point.y - y) < 0.2);
 const lit = (color) => (blocks, robot) => robot.lights === colorById(color).hex;
 const played = (notes) => (blocks, robot) => robot.notesPlayed === notes;
 const all = (...checks) => (blocks, robot) => checks.every((check) => check(blocks, robot));
 
-/** True when a «Repetir `times` vezes» holds a block of each of `types`. */
-const repeats = (times, types) => (blocks) =>
-  blocks.some((block) => block.type === 'repeat' && block.value === times && types.every((type) => block.body.some((inside) => inside.type === type)));
+/** True when a «Repetir `times` vezes» holds a block for each of `wanted`, given as `[type, value]`. */
+const repeats = (times, wanted) => (blocks) =>
+  blocks.some(
+    (block) =>
+      block.type === 'repeat' &&
+      block.value === times &&
+      wanted.every(([type, value]) => block.body.some((inside) => inside.type === type && (value === undefined || inside.value === value))),
+  );
 
 /**
  * Exercises are missions whose answer tells the robot what to do. The robot starts
@@ -52,7 +61,7 @@ const EXERCISES = {
           goal: 'O robô quer andar 9 − 6 passos em frente. Quantos passos são? Faz o robô andar esse número de passos.',
           hint: 'Tens 9 e tiras 6. No bloco «Andar em frente» podes escolher o número de passos.',
           world: {},
-          check: at(1, 1),
+          check: ahead(3),
           solution: [['forward', 3]],
         },
         {
@@ -94,7 +103,7 @@ const EXERCISES = {
           goal: 'No número 47, qual é o algarismo das dezenas? Anda esse número de passos em frente.',
           hint: '47 são 4 dezenas e 7 unidades.',
           world: {},
-          check: at(1, 0),
+          check: ahead(4),
           solution: [['forward', 4]],
         },
         {
@@ -121,10 +130,10 @@ const EXERCISES = {
           id: 'mat-centimetros',
           icon: '📏',
           title: 'Medir o caminho',
-          goal: 'Cada quadrado do tapete mede 20 cm. O tesouro está escondido 60 cm à frente do robô. Quantos quadrados são? Leva o robô até lá.',
+          goal: 'Neste exercício, cada quadrado do tapete mede 20 cm. O tesouro está escondido 60 cm à frente do robô. Quantos quadrados são? Leva o robô até lá.',
           hint: 'Conta de 20 em 20 até chegares a 60: 20, 40, 60. Quantas vezes contaste?',
           world: {},
-          check: at(1, 1),
+          check: ahead(3),
           solution: [['forward', 3]],
         },
         {
@@ -156,14 +165,15 @@ const EXERCISES = {
           goal: 'Desenha um retângulo com o robô: os lados compridos têm 3 passos e os lados curtos têm 2. Acaba no sítio onde começaste.',
           hint: 'Um retângulo tem 2 lados compridos e 2 lados curtos. Dentro de um «Repetir 2 vezes» põe: andar 3, virar à direita, andar 2, virar à direita.',
           world: {},
-          check: (blocks, robot) => robot.atStart() && robot.stepsMoved === 10 && robot.bumps === 0,
+          // The corner opposite the start is (3, 1) for an upright rectangle and (4, 2) for one lying down.
+          check: (blocks, robot) => robot.atStart() && robot.stepsMoved === 10 && robot.bumps === 0 && (passed(3, 1)(blocks, robot) || passed(4, 2)(blocks, robot)),
           solution: [['repeat', 2, [['forward', 3], ['turnRight', 1], ['forward', 2], ['turnRight', 1]]]],
         },
         {
           id: 'mat-metade',
           icon: '🔵',
           title: 'Metade dos berlindes',
-          goal: 'A Sara tem 16 berlindes e dá metade ao irmão. Com quantos fica? Toca uma nota por cada berlinde da Sara.',
+          goal: 'A Sara tem 16 berlindes e dá metade ao irmão. Com quantos fica? Toca uma nota por cada berlinde com que a Sara fica.',
           hint: 'Metade de 16 é o número que somado a si próprio dá 16. São muitas notas: dentro de um «Repetir 4 vezes» põe 2 notas.',
           world: {},
           check: played(8),
@@ -183,7 +193,7 @@ const EXERCISES = {
           id: 'mat-itinerario',
           icon: '🧭',
           title: 'O mapa do tesouro',
-          goal: 'Cada quadrado do tapete mede 20 cm. O robô anda 80 cm em frente, vira à direita e anda 60 cm. A que tesouro chega? Leva-o até lá.',
+          goal: 'Neste exercício, cada quadrado do tapete mede 20 cm. O robô anda 80 cm em frente, vira à direita e anda 60 cm. A que tesouro chega? Leva-o até lá.',
           hint: 'Conta de 20 em 20: quantos quadrados são 80 cm? E 60 cm?',
           world: { signs: [[4, 0, '💎'], [3, 0, '👑'], [4, 1, '🏆']] },
           check: onSign('💎'),
@@ -245,7 +255,7 @@ const EXERCISES = {
           goal: 'Lê a mensagem e faz o programa que ela pede.',
           hint: 'A mensagem pede duas coisas, uma de cada vez. Usa um bloco para cada uma.',
           world: {},
-          check: all(at(1, 1), lit('blue')),
+          check: all(ahead(3), lit('blue')),
           solution: [['forward', 3], ['lights', 'blue']],
         },
       ],
@@ -276,7 +286,7 @@ const EXERCISES = {
           title: 'A palavra que mexe',
           goal: 'Qual destas palavras é um verbo, uma palavra que diz o que alguém faz? Leva o robô até ela.',
           hint: 'Experimenta dizer «Eu vou…» antes de cada palavra. Só uma fica bem.',
-          world: { signs: [[1, 1, 'casa'], [3, 4, 'correr'], [5, 2, 'azul']] },
+          world: { signs: [[1, 1, 'mesa'], [3, 4, 'correr'], [5, 2, 'azul']] },
           check: onSign('correr'),
           solution: [['turnRight', 1], ['forward', 2]],
         },
@@ -298,7 +308,7 @@ const EXERCISES = {
           goal: 'Quantas voltas deu a Ana ao lago? Anda esse número de passos em frente. Depois acende as luzes da cor da bicicleta.',
           hint: 'Procura no texto um número e uma cor.',
           world: {},
-          check: all(at(1, 0), lit('red')),
+          check: all(ahead(4), lit('red')),
           solution: [['forward', 4], ['lights', 'red']],
         },
       ],
@@ -352,7 +362,7 @@ const EXERCISES = {
           goal: 'Lê o recado e faz o programa que ele pede.',
           hint: 'O que se faz três vezes vai dentro de um «Repetir 3 vezes». As notas ficam fora, no fim.',
           world: {},
-          check: all(repeats(3, ['lights', 'lightsOff']), played(2), (blocks) => blocks.some((block) => block.type === 'lights' && block.value === 'yellow')),
+          check: all(repeats(3, [['lights', 'yellow'], ['wait', 1], ['lightsOff']]), played(2)),
           solution: [['repeat', 3, [['lights', 'yellow'], ['wait', 1], ['lightsOff']]], ['note', 'do'], ['note', 'mi']],
         },
       ],

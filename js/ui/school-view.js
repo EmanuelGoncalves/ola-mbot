@@ -33,7 +33,7 @@ export class SchoolView {
           'div',
           { class: 'row' },
           el('div', { class: 'choice', role: 'group', 'aria-label': T.school.subjects }, SUBJECTS.map((subject) => this.#subjectButton(subject))),
-          el('div', { class: 'choice' }, YEARS.map((year) => this.#yearButton(year))),
+          el('div', { class: 'choice', role: 'group', 'aria-label': T.school.years }, YEARS.map((year) => this.#yearButton(year))),
         ),
         el('p', { class: 'view-progress', text: `⭐ ${T.school.progress(this.#board.starsIn(exercises), exercises.length, this.#subject.name)}` }),
       ),

@@ -16,6 +16,15 @@ It has six tabs:
 Every command goes to the robot drawn on screen and, when one is connected over
 Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 
+## Screenshots
+
+| | |
+| --- | --- |
+| ![The lessons of the Aprender tab, three of them done](docs/screenshots/aprender.png)<br>**Aprender**: the lessons, in order. | ![A lesson: the robot coach points at the next block to tap](docs/screenshots/licao.png)<br>A lesson: the coach points at what to tap next. |
+| ![The Programar tab with a program of five blocks and the robot's trail on the mat](docs/screenshots/programar.png)<br>**Programar**: blocks, the program and the mat. | ![The Conduzir tab after a radar turn, with rays from the robot to the boxes](docs/screenshots/conduzir.png)<br>**Conduzir**: arrows, and the radar's view of the mat. |
+| ![The labyrinth mission solved, with its star](docs/screenshots/missao.png)<br>**Missões**: the labyrinth, solved. | ![The Escola tab with the Matemática exercises by level](docs/screenshots/escola.png)<br>**Escola**: exercises by subject and level. |
+| ![A Português exercise: a short text, a question and three signs on the mat](docs/screenshots/exercicio.png)<br>An exercise: read, then take the robot to the answer. | ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. |
+
 ## Run it
 
 No build step and no dependencies: plain HTML, CSS and ES modules.
@@ -80,6 +89,7 @@ js/program/           block catalogue, program model, interpreter
 js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar
 js/ui/                one module per tab, plus shared pieces
 tests/                browser tests
+docs/screenshots/     the pictures in this README
 ```
 
 A lesson is data: each step has its text, what to point at and a test that

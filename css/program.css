@@ -1,4 +1,4 @@
-/* Programar: the lesson coach on top, then the mat first on phones, beside the program on upright tablets, three columns from 980px */
+/* Programar: the lesson coach or the mission on top, then the mat first on phones, beside the program on upright tablets, three columns from 980px */
 .program-view {
   display: flex;
   flex-direction: column;
@@ -77,7 +77,7 @@
   }
 
   .program-view[data-mode="mission"] {
-    --around-mat: 465px;
+    --around-mat: 450px;
   }
 }
 
@@ -451,15 +451,38 @@
   }
 }
 
-/* Mission banner above the mat */
+/* The mission or school exercise being played, across the top like the coach */
 .mission-banner {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 14px;
+  border: 3px solid var(--star-edge);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.mission-banner-text {
+  display: flex;
+  flex: 1 1 320px;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 2px solid var(--star-edge);
-  border-radius: var(--radius-small);
-  background: var(--surface-soft);
+  gap: 4px;
+  min-width: 0;
+}
+
+/* The story and the question sit side by side where there is room */
+.mission-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
+
+.mission-ask > p {
+  flex: 1 1 300px;
+  max-width: 62ch;
+  font-size: 1.05rem;
 }
 
 .mission-banner .button {
@@ -473,8 +496,7 @@
   padding: 8px 12px;
   border-left: 5px solid var(--brand);
   border-radius: 6px;
-  background: var(--surface);
-  font-size: 1.05rem;
+  background: var(--surface-soft);
   line-height: 1.5;
 }
 

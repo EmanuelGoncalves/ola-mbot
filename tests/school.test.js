@@ -73,6 +73,26 @@ for (const exercise of EXERCISES) {
   });
 }
 
+const byId = (id) => EXERCISES.find((exercise) => exercise.id === id);
+
+test('school: bumping into the edge of the mat does not turn a wrong count into a right one', async () => {
+  ok(!(await solves(byId('mat-dezenas'), [['forward', 5], ['forward', 2]])), 'seven steps passed for four');
+  ok(!(await solves(byId('pt-parque'), [['forward', 5], ['lights', 'red']])), 'five laps passed for four');
+});
+
+test('school: the rectangle may stand or lie down, but going back and forth is not one', async () => {
+  const lyingDown = [['repeat', 2, [['forward', 2], ['turnRight', 1], ['forward', 3], ['turnRight', 1]]]];
+  ok(await solves(byId('mat-retangulo'), lyingDown), 'a rectangle lying down was refused');
+  ok(!(await solves(byId('mat-retangulo'), [['forward', 3], ['backward', 3], ['forward', 2], ['backward', 2]])), 'back and forth passed');
+});
+
+test('school: the party note needs the wait and the yellow light inside the repeat', async () => {
+  const noWait = [['repeat', 3, [['lights', 'yellow'], ['lightsOff']]], ['note', 'do'], ['note', 'mi']];
+  const blue = [['repeat', 3, [['lights', 'blue'], ['wait', 1], ['lightsOff']]], ['lights', 'yellow'], ['note', 'do'], ['note', 'mi']];
+  ok(!(await solves(byId('pt-recado'), noWait)), 'no wait passed');
+  ok(!(await solves(byId('pt-recado'), blue)), 'a blue blink passed');
+});
+
 for (const exercise of EXERCISES.filter((item) => item.world.signs)) {
   test(`exercise "${exercise.id}": only one sign is the right answer`, () => {
     const robot = new Simulator({ tuning: FAST, beeper: { play() {} } });

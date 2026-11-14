@@ -17,6 +17,7 @@ export class MBot {
   #parser = new ReplyParser();
   #waiting = new Map();
   #index = 0;
+  #silence = null;
 
   constructor(link, tuning) {
     this.#link = link;
@@ -73,8 +74,9 @@ export class MBot {
 
   async playTone(hz, ms) {
     await this.#link.send(tonePacket(hz, ms));
-    // Older firmware ignores the duration, so silence the buzzer ourselves.
-    setTimeout(() => this.#link.send(tonePacket(0, 0)).catch(() => {}), ms);
+    // Older firmware ignores the duration, so silence the buzzer ourselves, unless a newer note is playing by then.
+    clearTimeout(this.#silence);
+    this.#silence = setTimeout(() => this.#link.send(tonePacket(0, 0)).catch(() => {}), ms);
   }
 
   /**

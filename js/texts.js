@@ -42,6 +42,7 @@ export const T = {
     stopped: 'Parei. Quando quiseres, começamos outra vez.',
     bump: 'Ups, por aqui não consigo passar!',
     matHint: 'Toca num quadrado do tapete para pôr ou tirar uma caixa.',
+    signs: (texts) => `No tapete há quadrados com: ${texts.join(', ')}.`,
     scale: (cm) => `Um quadrado do tapete são ${cm} cm no chão.`,
   },
 
@@ -62,8 +63,9 @@ export const T = {
 
   school: {
     title: 'Escola do robô',
-    intro: 'Aqui o robô precisa da tua cabeça! Resolve a pergunta: a resposta diz-te o que o robô tem de fazer. Não há pressa, podes tentar as vezes que quiseres.',
+    intro: 'Aqui o robô precisa da tua cabeça! Responde à pergunta: a resposta diz-te o que o robô tem de fazer. Não há pressa, podes tentar as vezes que quiseres.',
     subjects: 'Disciplina',
+    years: 'Ano de escolaridade',
     year: (year) => `${year}.º ano`,
     progress: (stars, total, subject) => `Tens ${stars} de ${total} estrelas em ${subject}`,
     leave: 'Sair do exercício',
@@ -174,10 +176,10 @@ export const T = {
       'O mBot não mede a distância que anda: um passo é um tempo com os motores ligados. Ajuste os tempos até um passo ter o tamanho de um quadrado do tapete e o quarto de volta ficar certinho. As pilhas e o chão mudam o resultado.',
     cellSize: 'Tamanho de um quadrado do tapete',
     centimetres: (cm) => `${cm} cm`,
-    fitIntro: 'O mBot pode medir o passo sozinho. Ponha-o virado de frente para uma parede lisa, a três palmos ou mais, e carregue no botão: ele dá um passo, mede com os olhos quanto andou e acerta o tempo.',
+    fitIntro: 'O mBot pode medir o passo sozinho. Ponha-o virado de frente para uma parede lisa, a cerca de um metro, e carregue no botão: ele dá um passo, mede com os olhos quanto andou e acerta o tempo.',
     fitStep: 'Afinar o passo sozinho',
     fitNeedsRobot: 'Ligue primeiro o mBot verdadeiro.',
-    fitFailed: 'Não consegui medir. O mBot tem de estar virado de frente para uma parede lisa, a três palmos ou mais (60 cm).',
+    fitFailed: 'Não consegui medir. O mBot tem de estar virado de frente para uma parede lisa, a cerca de um metro.',
     fitDone: (cm, ms) => `O mBot andou ${cm} cm. Mudei o tempo de um passo para ${seconds(ms)}. Carregue outra vez para confirmar.`,
     scanIntro: 'Para o mapa da sala, o mBot dá uma volta inteira em 12 rodadelas curtas. Ajuste o tempo até ele acabar virado para onde começou.',
     scanTime: 'Radar: tempo de cada rodadela',
@@ -187,8 +189,8 @@ export const T = {
     testStep: 'Testar um passo',
     testTurn: 'Testar um quarto de volta',
     flipIntro: 'Se o mBot verdadeiro andar ao contrário do robô do ecrã, os motores foram ligados ao contrário na montagem. Estes interruptores corrigem isso aqui na aplicação.',
-    flipDrive: 'Trocar a frente com a trás',
-    flipTurn: 'Trocar a esquerda com a direita',
+    flipDrive: 'Trocar frente e trás',
+    flipTurn: 'Trocar esquerda e direita',
     milliseconds: seconds,
   },
 };
