@@ -27,6 +27,7 @@ export class RobotHub {
 
   attach(mbot) {
     this.#mbot = mbot;
+    this.#simulator.alone = false;
     mbot.focus(this.#focused);
   }
 
@@ -49,6 +50,7 @@ export class RobotHub {
 
   detach() {
     this.#mbot = null;
+    this.#simulator.alone = true;
   }
 
   move(steps, signal) {

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Olá, mBot! tests on the robot</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 24px; max-width: 60rem; }
+    li.pass { color: #1f7a4d; }
+    li.fail { color: #b3261e; font-weight: 700; }
+    li.skip { color: #8a6d00; }
+    button { font: inherit; padding: 8px 14px; margin: 0 8px 8px 0; }
+  </style>
+</head>
+<body>
+  <h1 id="summary">Tests on the real mBot</h1>
+  <p>
+    These run the app's own code against a real mBot. Switch the robot on, away from edges and with a
+    few things around it. The tests that move it only turn it on the spot and drive it one step and back.
+  </p>
+  <p>
+    <button id="bridge">Run through the bridge</button>
+    <button id="bluetooth">Run with this browser's Bluetooth</button>
+    <label><input id="move" type="checkbox"> also the tests that move the robot</label>
+  </p>
+  <ul id="results"></ul>
+  <script type="module">
+    import { bridgeBluetooth } from './bridge.js';
+    import { moving, robotOn, Skip, still } from './robot.test.js';
+
+    const summary = document.getElementById('summary');
+    const list = document.getElementById('results');
+    const line = (kind, text) => list.append(Object.assign(document.createElement('li'), { className: kind, textContent: text }));
+
+    async function run(bluetooth) {
+      list.replaceChildren();
+      const robot = robotOn(bluetooth);
+      summary.textContent = 'Connecting…';
+      try {
+        await robot.connect();
+      } catch (error) {
+        summary.textContent = `Could not connect: ${error.message}`;
+        return;
+      }
+      const counts = { pass: 0, fail: 0, skip: 0 };
+      const tests = document.getElementById('move').checked ? [...still, ...moving] : still;
+      for (const [name, test] of tests) {
+        summary.textContent = `Running: ${name}…`;
+        try {
+          line('pass', `${name}: ${await test(robot)}`);
+          counts.pass += 1;
+        } catch (error) {
+          const kind = error instanceof Skip ? 'skip' : 'fail';
+          line(kind, `${name}: ${kind === 'skip' ? 'skipped, ' : ''}${error.message}`);
+          counts[kind] += 1;
+        }
+      }
+      robot.link.disconnect();
+      summary.textContent = `${counts.pass} passed, ${counts.fail} failed, ${counts.skip} skipped`;
+      window.results = counts;
+    }
+
+    document.getElementById('bridge').addEventListener('click', () => run(bridgeBluetooth()));
+    document.getElementById('bluetooth').addEventListener('click', () => run(navigator.bluetooth));
+    // ?run starts at once through the bridge, and ?run&move also moves the robot.
+    const asked = new URLSearchParams(location.search);
+    document.getElementById('move').checked = asked.has('move');
+    if (asked.has('run')) run(bridgeBluetooth());
+  </script>
+</body>
+</html>

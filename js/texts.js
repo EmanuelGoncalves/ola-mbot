@@ -298,7 +298,7 @@ export const T = {
       'O mBot não mede a distância que anda: um passo é um tempo com os motores ligados. Ajuste os tempos até um passo ter o tamanho de um quadrado do tapete e o quarto de volta ficar certinho. As pilhas e o chão mudam o resultado.',
     cellSize: 'Tamanho de um quadrado do tapete',
     centimetres: (cm) => `${cm} cm`,
-    fitIntro: 'O mBot pode medir o passo sozinho. Ponha-o virado de frente para uma parede lisa, a cerca de um metro, e carregue no botão: ele dá um passo, mede com os olhos quanto andou e acerta o tempo.',
+    fitIntro: 'O mBot pode medir o passo sozinho. Ponha-o virado de frente para uma parede lisa, a cerca de um metro, e carregue no botão: ele dá um passo em frente e outro para trás, mede com os olhos quanto andou e acerta o tempo.',
     fitStep: 'Afinar o passo sozinho',
     fitNeedsRobot: 'Ligue primeiro o mBot verdadeiro.',
     fitFailed: 'Não consegui medir. O mBot tem de estar virado de frente para uma parede lisa, a cerca de um metro.',
@@ -308,15 +308,14 @@ export const T = {
     scanTime: 'Radar: tempo de cada rodadela',
     scanStops: 'Radar: rodadelas numa volta inteira',
     turnsIntro:
-      'O mBot também pode afinar as voltas sozinho. Ponha-o num sítio com coisas à volta a distâncias diferentes (uma caixa a um palmo e uma parede mais longe chegam) e carregue no botão. Ele roda devagar mais de uma volta, repara quando volta a ver as mesmas coisas e fica a saber quantas rodadelas tem uma volta. Depois dá quatro quartos de volta e vê onde foi parar. Demora cerca de um minuto.',
+      'O mBot também pode afinar as voltas sozinho. Ponha-o num sítio com coisas à volta a distâncias diferentes (uma caixa a um palmo e uma parede mais longe chegam) e carregue no botão. Ele roda devagar quase duas voltas, repara quando volta a ver as mesmas coisas e fica a saber quanto roda em cada rodadela. Depois dá quatro quartos de volta, vê onde foi parar e acerta-os, duas vezes. Demora cerca de minuto e meio.',
     fitTurns: 'Afinar as voltas sozinho',
     turnsMeasuring: 'A rodar e a olhar… Não mexa no robô nem nas coisas à volta dele.',
     turnsFailed:
       'Não consegui perceber onde acaba a volta. O mBot precisa de ver coisas a distâncias diferentes à volta dele: ponha uma caixa a um palmo e tente outra vez. Se ele quase não rodar, aumente o tempo de cada rodadela.',
-    spinsDone: (spins) => `Uma volta inteira são ${spins} rodadelas: o radar ficou afinado. Não consegui medir os quartos de volta.`,
-    turnsRight: (spins) => `Uma volta inteira são ${spins} rodadelas, e quatro quartos de volta deram 360°: as voltas já estão certas.`,
-    turnsDone: (spins, degrees, ms) =>
-      `Uma volta inteira são ${spins} rodadelas. Quatro quartos de volta deram ${degrees}° em vez de 360°: mudei o tempo de um quarto de volta para ${seconds(ms)}. Carregue outra vez para confirmar.`,
+    turnsDone: (quarterMs, spinMs) => `Feito! Um quarto de volta leva agora ${seconds(quarterMs)} e cada rodadela do radar ${seconds(spinMs)}, para dar uma volta em 12.`,
+    turnsChecked: (degrees) => `Na última medida, quatro quartos de volta deram ${degrees}°.`,
+    turnsUnchecked: 'Não consegui confirmar os quartos de volta: carregue outra vez, se o robô não ficar virado para onde estava.',
     testScan: 'Testar a volta do radar',
     stepTime: 'Tempo de um passo',
     turnTime: 'Tempo de um quarto de volta',

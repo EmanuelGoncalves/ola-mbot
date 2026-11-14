@@ -1,4 +1,4 @@
-import { MBot } from '../js/robot/mbot.js';
+import { MBot, noteLength } from '../js/robot/mbot.js';
 import { RobotHub } from '../js/robot/hub.js';
 import { lightsPacket, resetPacket, tonePacket, wheelsPacket } from '../js/robot/protocol.js';
 import { DEFAULT_TUNING } from '../js/robot/tuning.js';
@@ -12,8 +12,8 @@ function fakeLink() {
   return link;
 }
 
-/** The packet for a note: it sounds a little shorter than asked, to be over when the next one is due. */
-const note = (hz, ms) => tonePacket(hz, Math.max(30, ms - 40));
+/** The packet for a note: it is asked shorter than wanted, to be over when the next one is due. */
+const note = (hz, ms) => tonePacket(hz, noteLength(ms));
 
 function robot(tuning = {}) {
   const link = fakeLink();
@@ -155,6 +155,15 @@ test('hub: a reset stops the robot on screen, puts its lights out and resets the
   equal(done, ['stop', null, 'real']);
 });
 
+test('hub: the robot on screen knows when a real robot moves with it', () => {
+  const screen = {};
+  const hub = new RobotHub(screen, {});
+  hub.attach({ focus() {} });
+  equal(screen.alone, false);
+  hub.detach();
+  equal(screen.alone, true);
+});
+
 test('hub: a real-only spin goes either way and leaves the robot on screen alone', async () => {
   const spins = [];
   const hub = new RobotHub({ rotate: () => spins.push('screen') }, {});
@@ -164,11 +173,21 @@ test('hub: a real-only spin goes either way and leaves the robot on screen alone
   equal(spins, [[1, 170], [-1, 170]]);
 });
 
-test('mbot: a note sounds a little shorter than asked, and never too short to hear', async () => {
+test('mbot: a note is asked shorter than wanted, because the robot holds it longer, and never too short to hear', async () => {
   const { link, mbot } = robot();
-  await mbot.playTone(440, 238);
-  equal(link.sent, [[...tonePacket(440, 198)]]);
-  equal([...note(440, 10)], [...tonePacket(440, 30)]);
+  await mbot.playTone(440, 311);
+  equal(link.sent, [[...tonePacket(440, 200)]]); // the robot holds 200 ms for about 256 ms
+  equal(noteLength(10), 30);
+});
+
+test('mbot: after a note too short to cut, nothing is sent until the robot has really finished it', async () => {
+  const { link, mbot } = robot();
+  await mbot.playTone(440, 10);
+  const driving = mbot.drive(100, 100);
+  await pause(60);
+  equal(link.sent.length, 1, 'sent 60 ms after a 10 ms note:');
+  await driving;
+  equal(link.sent.length, 2);
 });
 
 test('mbot: the robot is deaf from when the packet really went, not from when it was handed over', async () => {

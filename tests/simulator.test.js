@@ -81,6 +81,20 @@ test('simulator: driving slides along the edge of the mat', async () => {
   ok(robot.pose.x > 3.1, `the robot stopped at the edge instead of sliding (x = ${robot.pose.x})`);
 });
 
+test('simulator: alone it is never slower than a brisk robot; beside a real robot it keeps that robot\'s pace', () => {
+  const robot = new Simulator({ tuning: { speed: 150, stepMs: 1200, quarterTurnMs: 460 }, beeper: { play() {} } });
+  const squaresIn600ms = () => {
+    const { y } = robot.pose;
+    robot.drive(150, 150);
+    robot.advance(600);
+    robot.stop();
+    return Math.round((y - robot.pose.y) * 100) / 100;
+  };
+  equal(squaresIn600ms(), 1, 'alone:');
+  robot.alone = false;
+  equal(squaresIn600ms(), 0.5, 'beside a real robot:');
+});
+
 /** One solution per mission, following the mission's own hint. */
 const SOLUTIONS = {
   'first-steps': [['forward', 3]],

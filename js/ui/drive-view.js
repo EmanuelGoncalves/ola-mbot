@@ -361,8 +361,11 @@ export class DriveView {
         return;
       }
       const { min, max } = TUNING_LIMITS.scanStops;
-      if (found && turn !== scanStops && turn >= min && turn <= max) {
-        this.#tuning.scanStops = turn; // learnt for the next time, and for exploring
+      const learnt = Math.round(turn);
+      // A turn far from the tuned one is used for this map only: it may come from a view that changed half-way.
+      const differs = Math.abs(turn - scanStops) >= 0.75 && Math.abs(turn - scanStops) <= scanStops / 4;
+      if (found && differs && learnt >= min && learnt <= max) {
+        this.#tuning.scanStops = learnt; // for the next time, and for exploring
         saveTuning(this.#tuning);
       }
       this.#simulator.showSightings(seen.filter((reading) => reading.range !== null).map(sighting));

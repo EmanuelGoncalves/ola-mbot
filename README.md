@@ -88,11 +88,19 @@ timed motor runs, which change with the floor and the batteries. "Ligar ao robô
 → Afinar o robô" has sliders for them, and the robot can set them by itself with
 its distance sensor:
 
-- **Afinar o passo sozinho**: facing a wall, it takes one step and measures how
-  far it went.
+- **Afinar o passo sozinho**: facing a flat wall about a metre away, it takes one
+  step forward and one back, measures both with its eyes, and sets the step time.
+  A reading where the two steps disagree is thrown away.
 - **Afinar as voltas sozinho**: with things around it at different distances, it
-  spins for more than a turn, sees where the turn ended by what it sees again,
-  then measures what four quarter turns really add up to.
+  turns in short spins for almost two turns and finds how many spins a turn
+  takes from where the view repeats. From that it sets the radar's spin to a
+  twelfth of a turn. Then it makes four quarter turns, sees where it ended, and
+  corrects the quarter-turn time, twice over. It takes about a minute and a half.
+
+The times the app starts with were measured this way on a real mBot: 1.26 s for a
+20 cm step, 0.46 s for a quarter turn. Batteries and the floor change them, so
+run the two buttons again when the robot stops short or turns too far. The robot
+on screen never plays slower than a brisk robot when no real one is connected.
 
 The same section has two switches for a robot that drives or turns the wrong
 way, which happens when the two motors were plugged into each other's sockets.
@@ -114,13 +122,17 @@ cone, so one thing seen by neighbouring looks is counted once (`distinct` in
 `js/robot/radar.js`).
 
 A short spin turns the robot less than its time suggests, because the motors
-need a moment to get going, and the robot cannot measure the angle. So the real
-robot spins for more than a full turn, and `spinsInATurn` finds where the looks
-start to repeat the first ones: that is one turn, however many spins it took.
-The number is kept for next time and for exploring. With nothing to recognise
-around it, the robot says the map may be off. It stays a coarse map: the cone is
-about 30° wide, and a smooth wall seen at a slant sends no echo back. Without a
-robot connected, the radar only draws what the robot on screen sees.
+need a moment to get going (about 26 ms on a real mBot), and the robot cannot
+measure the angle. So the real robot spins for more than a full turn, and
+`spinsInATurn` finds how often the looks repeat: that is one turn, however many
+spins it took, and it need not be a whole number. Two turns repeat as well as
+one, so a half of the best fit wins when it fits too, and a repeat seen in fewer
+than six pairs of looks is not believed. A turn within a quarter of the tuned
+one is kept for next time and for exploring. With nothing to recognise around
+it, or with somebody walking by, the robot says the map may be off. It stays a
+coarse map: the cone is about 30° wide, and a smooth wall seen at a slant sends
+no echo back. Without a robot connected, the radar only draws what the robot on
+screen sees.
 
 </details>
 
@@ -181,19 +193,19 @@ lists every device nearby, because the browsers there do not find the mBot by
 its name or its service. The dialog shows how the link is doing: packets sent
 and failed, the slowest write, and how often the link was started again.
 
-The firmware can do one thing at a time, and `MBot` works around two of its
-habits:
+The firmware can do one thing at a time. It plays a note with a blocking loop
+and reads its 64-byte serial buffer only between commands, so packets that
+arrive during a note can overflow the buffer, and a garbled packet can be taken
+for anything, such as a very long note that leaves the robot beeping and deaf.
+It also holds every note about 1.28 times as long as it is asked to (measured on
+a real mBot, at every pitch). A tune sent at its written pace therefore piles
+up: after six half-second notes the robot was half a second behind and answered
+no questions in time.
 
-- It plays a note with a blocking loop and reads its 64-byte serial buffer only
-  between commands. Packets that arrive during a note can overflow the buffer.
-- To change its lights it switches its interrupts off for about half a
-  millisecond (it drives a strip of 16 LEDs), and loses the bytes that arrive
-  meanwhile.
-
-A garbled packet can be taken for anything, such as a very long note that leaves
-the robot beeping and deaf. So `MBot` sends nothing while a note plays or for
-80 ms after a colour change, and of the packets that waited it sends only the
-newest of each kind.
+So `MBot` asks for each note shorter by that factor, sends nothing while a note
+plays, and of the packets that waited sends only the newest of each kind. After
+a colour change it waits 40 ms; a real mBot lost nothing sent right behind one,
+so that is only a margin.
 
 The red "Parar tudo" button of the top bar is the way out when the robot does
 too much at once. It ends every activity in the app, forgets the packets still
@@ -256,6 +268,8 @@ js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar
                       explorer and its pretend rooms, and the command line
 js/ui/                one module per tab, plus shared pieces
 tests/                browser tests
+tests/robot/          tests that run the app's code on a real mBot
+tools/                a bridge from a browser without Web Bluetooth to the robot (macOS)
 docs/                 the banner and the screenshots of this README
 ```
 
@@ -287,8 +301,34 @@ the browser, in about twenty seconds. They cover:
 - a reference solution for every mission and school exercise, with forty random
   rounds of each exercise that draws numbers;
 - every lesson, from first step to last;
-- the radar: averaging, finding its own full turn, measuring quarter turns;
+- the radar: averaging, finding its own full turn (also in what a real mBot
+  saw), telling where in the turn it is, measuring quarter turns;
 - the line follower, with the robot on screen going all the way round its
   circuit;
 - the explorer finding the door of each pretend room, also on a slippery floor;
 - tunes, light shows and the command line.
+
+### On the real robot
+
+`tests/robot/` runs the app's own classes against a real mBot: the firmware
+version, thirty questions in a row, every sensor, a colour change with a packet
+right behind it, how long the robot really holds a note, a tune with the lights
+changing, and a reset in the middle of a note. With "also the tests that move
+the robot" ticked, the robot finds its own full turn, makes four quarter turns
+and checks where it ended, and measures a step. Those tests stop the robot at
+once if the line sensors under its nose see nothing, as over an edge.
+
+In Chrome or Edge, open <http://localhost:8765/tests/robot/> and press "Run with
+this browser's Bluetooth". Where the browser has no Web Bluetooth, a small
+bridge stands in for it on a Mac:
+
+```bash
+tools/build-bridge.sh
+open -n "tools/build/mBot Bridge.app"
+```
+
+macOS asks once whether "mBot Bridge" may use Bluetooth. Then open
+<http://localhost:8765/tests/robot/?run> (add `&move` for the moving tests). The
+bridge listens on `127.0.0.1:8766` for pages served from this computer only, and
+`tests/robot/bridge.js` makes it look like Web Bluetooth to the app's
+`BluetoothLink`. Stop it with `pkill -x mbot-bridge`.

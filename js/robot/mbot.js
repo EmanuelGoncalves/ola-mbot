@@ -13,15 +13,22 @@ export const EYES_AHEAD_CM = 10;
 const SEEK_LIMIT_MS = 8000;
 const SEEK_POLL_MS = 80;
 const LIGHTS_OFF = [0, 0, 0];
-/** Time for a note to reach the robot and for the robot to start listening again after it. */
-const NOTE_MARGIN_MS = 40;
-const SHORTEST_NOTE_MS = 30;
 /**
- * To change its lights the firmware switches its interrupts off for about half a millisecond,
- * and loses the bytes that arrive meanwhile. A packet sent this soon after a colour change could
- * travel in the same Bluetooth burst and arrive right then, so nothing is sent for this long.
+ * The robot holds a note longer than it is asked to: about 1.28 times, at every pitch (measured
+ * on a real mBot with firmware 06.01.009). So it is asked for less.
  */
-const LIGHTS_DEAF_MS = 80;
+const NOTE_STRETCH = 1.28;
+/** Time for a note to reach the robot and for the robot to start listening again after it. */
+const NOTE_MARGIN_MS = 55;
+const SHORTEST_NOTE_MS = 30;
+/** What to ask the robot for, so that a note is over `ms` after it was sent. */
+export const noteLength = (ms) => Math.max(SHORTEST_NOTE_MS, Math.round((ms - NOTE_MARGIN_MS) / NOTE_STRETCH));
+/**
+ * To change its lights the firmware switches its interrupts off for a moment, and could lose a
+ * byte that arrives right then. A real mBot answered 60 of 60 questions sent in the same write
+ * as a colour change, so this pause is only a small margin.
+ */
+const LIGHTS_DEAF_MS = 40;
 /**
  * A reset is said this many times, this far apart: a robot in the middle of a garbled packet
  * swallows the first one.
@@ -136,9 +143,10 @@ export class MBot {
   /** The note stops by itself after `ms`; until then the robot does nothing else. */
   playTone(hz, ms) {
     if (this.#focused) return Promise.resolve();
-    // The note is cut a little short, so that the robot is listening again when the next one is due.
-    const sounding = Math.max(SHORTEST_NOTE_MS, ms - NOTE_MARGIN_MS);
-    return this.#send(tonePacket(hz, sounding), { kind: 'tone', deafMs: ms, last: true });
+    // The note is cut short, so that the robot is listening again when the next one is due.
+    const sounding = noteLength(ms);
+    const deafMs = Math.max(ms, Math.ceil(sounding * NOTE_STRETCH) + NOTE_MARGIN_MS);
+    return this.#send(tonePacket(hz, sounding), { kind: 'tone', deafMs, last: true });
   }
 
   /**

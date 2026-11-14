@@ -6,13 +6,15 @@ import { load, save } from '../storage.js';
  * `cellCm` is the size of one square of the mat on the real floor.
  * `scanStepMs` is the short spin between two looks of the radar, and `scanStops` how many of them make a full turn.
  * `flipDrive` and `flipTurn` put right a real robot whose motors were plugged in the other way round.
+ * The times are what a real mBot took when they were measured with its own eyes; batteries and
+ * the floor change them, which is what the tuning in "Ligar ao robô" is for.
  */
 export const DEFAULT_TUNING = Object.freeze({
   speed: 150,
-  stepMs: 600,
-  quarterTurnMs: 420,
+  stepMs: 1260,
+  quarterTurnMs: 460,
   cellCm: 20,
-  scanStepMs: 170,
+  scanStepMs: 190,
   scanStops: 12,
   flipDrive: false,
   flipTurn: false,

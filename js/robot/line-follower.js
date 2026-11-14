@@ -48,6 +48,8 @@ export function leanAfter(seen, lean) {
 export async function followLine(robot, { speed, signal, onSeen = () => {}, wait = sleep, now = () => performance.now() } = {}) {
   let lean = 0;
   let last = null;
+  /** The line was seen at least once. Before that the robot waits where it is: it does not go looking for a line that may not be there. */
+  let found = false;
   let lostAt = null;
   let toldAt = -Infinity;
   let silent = 0;
@@ -65,7 +67,8 @@ export async function followLine(robot, { speed, signal, onSeen = () => {}, wait
       if (lostAt !== null && time - lostAt > LOST_AFTER_MS) return 'lost';
       lean = leanAfter(seen, lean);
       if (seen !== last || time - toldAt >= SAY_AGAIN_MS) {
-        const [left, right] = wheelsFor(seen, lean);
+        found ||= seen !== Line.NONE;
+        const [left, right] = found ? wheelsFor(seen, lean) : [0, 0];
         await robot.drive(left * speed, right * speed);
         toldAt = time;
         if (seen !== last) onSeen(seen);

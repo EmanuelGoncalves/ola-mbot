@@ -62,6 +62,13 @@ test('line: the wheels are told again now and then, in case an order was lost', 
   equal(robot.driven.filter(([left, right]) => left === 100 && right === 100).length, 2, 'in 400 ms on the line:');
 });
 
+test('line: a robot that was never on the line waits where it is, and gives up', async () => {
+  const robot = scripted([]);
+  let clock = 0;
+  equal(await followLine(robot, { speed: 100, wait: noWait, now: () => (clock += 100) }), 'lost');
+  ok(robot.driven.every(([left, right]) => left === 0 && right === 0), `it was told to move: ${JSON.stringify(robot.driven)}`);
+});
+
 test('line: a robot that stops answering is stopped at once, and the following ends', async () => {
   const robot = scripted([Line.BOTH, null, null, null, null, null]);
   equal(await followLine(robot, { speed: 100, wait: noWait }), 'silent');

@@ -3,8 +3,8 @@ import { BluetoothLink, listsAllDevices } from '../robot/bluetooth.js';
 import { describeHealth } from '../robot/console.js';
 import { MBot } from '../robot/mbot.js';
 import { colorById, noteById } from '../robot/palette.js';
-import { measureQuarters, measureStep, sweep, sweepUntilRepeat } from '../robot/radar.js';
-import { saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
+import { correctedSpinTime, measureQuarters, measureStep, spinsOf, spinTime, sweep, sweepUntilRepeat, whereInTurn } from '../robot/radar.js';
+import { DEFAULT_TUNING, saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -16,7 +16,12 @@ const HELLO_NOTE_MS = 200;
 /** A measured step shorter than this part of a square is a bad measurement. */
 const SHORTEST_STEP = 0.2;
 /** When the robot finds its own full turn for the tuning, it looks for turns up to this many times the expected spins. */
-const WIDEST_TURN = 2.5;
+const WIDEST_TURN = 1.8;
+/** For the tuning the robot turns in spins this much shorter than the radar's: more looks in a turn tell better where it is. */
+const FINE_SPIN = 0.65;
+/** The quarter turn is measured and corrected up to this many times, or until four of them are this close to a full turn. */
+const QUARTER_CHECKS = 2;
+const CLOSE_ENOUGH_DEGREES = 6;
 
 /** Closing the chooser is not a failure; a page that may not use Bluetooth gets the simulator note. */
 const FAILURE_STATE = { [CHOOSER_CLOSED]: State.IDLE, [NOT_ALLOWED]: State.BLOCKED };
@@ -265,26 +270,42 @@ export class Connection {
   }
 
   /**
-   * Lets the mBot find, with its eyes, how many radar spins make a full turn, and then what four
-   * quarter turns really add up to. Both are set from what it finds.
+   * Lets the mBot find, with its eyes, how far a spin turns it: it turns in spins shorter than
+   * the radar's, to tell better where it is. From that it sets the radar's spin to a twelfth of
+   * a turn. Then it makes four quarter turns, sees where it ended and corrects the quarter turn,
+   * twice over.
    */
   async #fitTurns(signal) {
     const report = (text) => show(this.#spinReport, text);
     if (!this.#hub.connected) return report(T.connection.fitNeedsRobot);
     report(T.connection.turnsMeasuring);
-    const stepMs = this.#tuning.scanStepMs;
-    const { turn, found, seen } = await sweepUntilRepeat(this.#hub, { expected: this.#tuning.scanStops, longest: WIDEST_TURN, stepMs, signal });
-    const spins = TUNING_LIMITS.scanStops;
+    const radar = { stepMs: this.#tuning.scanStepMs, turn: this.#tuning.scanStops };
+    const stepMs = Math.max(TUNING_LIMITS.scanStepMs.min, Math.round(radar.stepMs * FINE_SPIN));
+    const { turn, found, looks } = await sweepUntilRepeat(this.#hub, { expected: Math.round(spinsOf(radar, stepMs)), longest: WIDEST_TURN, stepMs, signal });
     // If the mBot went away half-way, part of what it saw came from the robot on screen.
-    if (!this.#hub.connected || !found || turn < spins.min || turn > spins.max) return report(T.connection.turnsFailed);
-    this.#set('scanStops', turn);
-    const degrees = await measureQuarters(this.#hub, { seen, stepMs, signal });
-    if (!this.#hub.connected || degrees === null) return report(T.connection.spinsDone(turn));
-    const { min, max, step } = TUNING_LIMITS.quarterTurnMs;
-    const fitted = Math.round((this.#tuning.quarterTurnMs * 360) / degrees / step) * step;
-    if (Math.round(degrees) === 360) return report(T.connection.turnsRight(turn));
-    this.#set('quarterTurnMs', Math.max(min, Math.min(max, fitted)));
-    report(T.connection.turnsDone(turn, Math.round(degrees), this.#tuning.quarterTurnMs));
+    if (!this.#hub.connected || !found) return report(T.connection.turnsFailed);
+    this.#fit('scanStepMs', spinTime({ stepMs, turn }, 360 / DEFAULT_TUNING.scanStops));
+    this.#set('scanStops', DEFAULT_TUNING.scanStops);
+    // A quarter turn far from what the spins tell would end too far away to be recognised.
+    const likely = spinTime({ stepMs, turn }, 90);
+    if (Math.abs(this.#tuning.quarterTurnMs - likely) > likely / 4) this.#fit('quarterTurnMs', likely);
+    let degrees = null;
+    let at = await whereInTurn(this.#hub, { looks, turn, stepMs, signal });
+    for (let check = 0; check < QUARTER_CHECKS && at !== null; check++) {
+      const measured = await measureQuarters(this.#hub, { looks, turn, stepMs, from: at, signal });
+      if (!this.#hub.connected || measured === null) break;
+      ({ degrees, at } = measured);
+      if (Math.abs(degrees - 360) <= CLOSE_ENOUGH_DEGREES) break;
+      this.#fit('quarterTurnMs', correctedSpinTime(this.#tuning.quarterTurnMs, degrees, 360));
+    }
+    const checked = degrees === null ? T.connection.turnsUnchecked : T.connection.turnsChecked(Math.round(degrees));
+    report(`${T.connection.turnsDone(this.#tuning.quarterTurnMs, this.#tuning.scanStepMs)} ${checked}`);
+  }
+
+  /** Sets a tuning value to the nearest it may take. */
+  #fit(key, value) {
+    const { min, max, step } = TUNING_LIMITS[key];
+    this.#set(key, Math.max(min, Math.min(max, Math.round(value / step) * step)));
   }
 
   /** Lets the mBot measure its own step with its eyes, and sets the step time from it. */
@@ -294,9 +315,7 @@ export class Connection {
     const squares = await measureStep(this.#hub, { signal });
     // If the mBot went away half-way, part of the measurement came from the robot on screen.
     if (!this.#hub.connected || squares === null || squares < SHORTEST_STEP) return report(T.connection.fitFailed);
-    const { min, max, step } = TUNING_LIMITS.stepMs;
-    const fitted = Math.round(this.#tuning.stepMs / squares / step) * step;
-    this.#set('stepMs', Math.max(min, Math.min(max, fitted)));
+    this.#fit('stepMs', this.#tuning.stepMs / squares);
     report(T.connection.fitDone(Math.round(squares * this.#tuning.cellCm), this.#tuning.stepMs));
   }
 

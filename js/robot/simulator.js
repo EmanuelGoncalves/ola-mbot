@@ -21,6 +21,9 @@ const SENSORS_APART = 0.08;
 /** At the start, this heading runs along the circuit. */
 const CIRCUIT_HEADING = 315;
 
+/** A step and a quarter turn of the robot on screen, when no real robot sets the pace. */
+const BRISK = { stepMs: 600, quarterTurnMs: 420 };
+
 /**
  * The robot on screen. It follows the same commands as the real mBot.
  * Events: `change` (pose, lights or trail), `world` (boxes, star or signs), `sightings`, `bump`, `note`.
@@ -40,6 +43,8 @@ export class Simulator extends EventTarget {
   bumps = 0;
   stepsMoved = 0;
   notesPlayed = 0;
+  /** False while a real robot moves with this one: then it keeps the real robot's pace, however slow. */
+  alone = true;
 
   #tuning;
   #beeper;
@@ -52,6 +57,12 @@ export class Simulator extends EventTarget {
     this.#tuning = tuning;
     this.#beeper = beeper;
     this.reset();
+  }
+
+  /** The times of a step and of a quarter turn. Alone, the robot on screen is never slower than a brisk real one. */
+  get #pace() {
+    const { stepMs, quarterTurnMs } = this.#tuning;
+    return this.alone ? { stepMs: Math.min(stepMs, BRISK.stepMs), quarterTurnMs: Math.min(quarterTurnMs, BRISK.quarterTurnMs) } : { stepMs, quarterTurnMs };
   }
 
   /** Puts the robot back on its starting cell and wipes the trail and what the radar saw. */
@@ -141,7 +152,7 @@ export class Simulator extends EventTarget {
   }
 
   turn(quarters, signal) {
-    return this.rotate(90 * quarters, this.#tuning.quarterTurnMs * Math.abs(quarters), signal);
+    return this.rotate(90 * quarters, this.#pace.quarterTurnMs * Math.abs(quarters), signal);
   }
 
   /** Spins on the spot by `degrees` (clockwise when positive) during `ms`. */
@@ -235,7 +246,7 @@ export class Simulator extends EventTarget {
       await this.#bump(dx, dy, signal);
       return;
     }
-    await animate(this.#tuning.stepMs, signal, (progress) => this.#place(x + dx * progress, y + dy * progress));
+    await animate(this.#pace.stepMs, signal, (progress) => this.#place(x + dx * progress, y + dy * progress));
     this.stepsMoved += 1;
   }
 
@@ -244,7 +255,7 @@ export class Simulator extends EventTarget {
     const { x, y } = this.pose;
     this.bumps += 1;
     this.dispatchEvent(new Event('bump'));
-    await animate(this.#tuning.stepMs, signal, (progress) => {
+    await animate(this.#pace.stepMs, signal, (progress) => {
       const nudge = Math.sin(Math.PI * progress) * BUMP_DISTANCE;
       this.pose.x = x + dx * nudge;
       this.pose.y = y + dy * nudge;
@@ -266,7 +277,8 @@ export class Simulator extends EventTarget {
 
   /** Moves the robot by what its wheels did during `ms`. The driving loop calls it at every frame. */
   advance(ms) {
-    const { speed, stepMs, quarterTurnMs } = this.#tuning;
+    const { stepMs, quarterTurnMs } = this.#pace;
+    const { speed } = this.#tuning;
     const { left, right } = this.#wheels;
     const steps = ((left + right) / 2 / speed) * (ms / stepMs);
     const quarters = ((left - right) / 2 / speed) * (ms / quarterTurnMs);
