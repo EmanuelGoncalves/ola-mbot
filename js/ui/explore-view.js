@@ -84,6 +84,7 @@ export class ExploreView {
     this.#run = run;
     this.#setRunning(true);
     this.#clearMap(real ? [] : wallsAround(ROOMS[this.#room]));
+    this.#hub.focus(true);
     try {
       const explorer = new Explorer(body, {
         stepCm: this.#tuning.cellCm,
@@ -95,6 +96,7 @@ export class ExploreView {
         },
       });
       const result = await explorer.run();
+      this.#hub.focus(false);
       if (result.found) await this.#celebrate(result.widthCm, run.signal);
       else this.#say(T.explore.gaveUp[result.reason]);
     } catch (error) {
@@ -103,6 +105,7 @@ export class ExploreView {
     } finally {
       this.#run = null;
       this.#setRunning(false);
+      this.#hub.focus(false);
       await this.#hub.stop();
     }
   }

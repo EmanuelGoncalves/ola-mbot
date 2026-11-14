@@ -112,6 +112,7 @@ export class DriveView {
           { class: 'drive-group' },
           el('h3', { text: T.drive.line }),
           el('p', { class: 'hint', text: T.drive.lineHint }),
+          el('p', { class: 'hint', text: T.drive.lineBusy }),
           el('div', { class: 'row' }, this.#lineButton),
           this.#lineStatus,
         ),
@@ -237,6 +238,7 @@ export class DriveView {
     this.#showFollowing(true);
     this.#simulator.showCircuit(true);
     this.#lineStatus.textContent = T.drive.lineSeen[Line.BOTH];
+    this.#hub.focus(true);
     try {
       const ended = await followLine(this.#hub, {
         speed: Math.max(SLOWEST_LINE_SPEED, this.#speed * LINE_SPEED),
@@ -250,6 +252,7 @@ export class DriveView {
     } finally {
       this.#line = null;
       this.#showFollowing(false);
+      this.#hub.focus(false);
       await this.#hub.stop();
       this.#simulator.showCircuit(false);
     }
@@ -286,6 +289,7 @@ export class DriveView {
     this.#simulator.showSightings([]);
     const { scanStops, scanStepMs } = this.#tuning;
     this.#mapStatus.textContent = T.drive.mapScanning(0, scanStops);
+    this.#hub.focus(true);
     try {
       const seen = await sweep(this.#hub, {
         stops: scanStops,
@@ -314,6 +318,7 @@ export class DriveView {
     } finally {
       this.#scan = null;
       this.#showScanning(false);
+      this.#hub.focus(false);
       await this.#hub.stop();
     }
   }

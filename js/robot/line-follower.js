@@ -14,6 +14,8 @@ const MOST_LEAN = 10;
 /** After this long off the line, or this many looks without an answer, the robot gives up. */
 const LOST_AFTER_MS = 3000;
 const MOST_SILENT_LOOKS = 5;
+/** The wheels are told again this often even when nothing changed, in case an order got lost on the way. */
+const SAY_AGAIN_MS = 300;
 
 /**
  * Wheel speeds `[left, right]`, as parts of the cruising speed, for what the sensors see.
@@ -47,21 +49,24 @@ export async function followLine(robot, { speed, signal, onSeen = () => {}, wait
   let lean = 0;
   let last = null;
   let lostAt = null;
+  let toldAt = -Infinity;
   let silent = 0;
   for (;;) {
     signal?.throwIfAborted();
     const seen = await robot.readLine();
+    const time = now();
     if (seen === null) {
       if (++silent >= MOST_SILENT_LOOKS) return 'silent';
     } else {
       silent = 0;
-      lostAt = seen !== Line.NONE ? null : (lostAt ?? now());
-      if (lostAt !== null && now() - lostAt > LOST_AFTER_MS) return 'lost';
+      lostAt = seen !== Line.NONE ? null : (lostAt ?? time);
+      if (lostAt !== null && time - lostAt > LOST_AFTER_MS) return 'lost';
       lean = leanAfter(seen, lean);
-      if (seen !== last) {
+      if (seen !== last || time - toldAt >= SAY_AGAIN_MS) {
         const [left, right] = wheelsFor(seen, lean);
         await robot.drive(left * speed, right * speed);
-        onSeen(seen);
+        toldAt = time;
+        if (seen !== last) onSeen(seen);
         last = seen;
       }
     }

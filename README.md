@@ -201,8 +201,22 @@ lists every device nearby, because the browsers there do not find the mBot by
 its name or its service. The dialog shows how the link is doing: packets sent
 and failed, the slowest write, and how often the link was started again.
 
-The firmware plays a note with a blocking loop and reads its 64-byte serial
-buffer only between commands. Packets that arrive during a note can overflow the
-buffer, and a garbled packet can be taken for a very long note, which leaves the
-robot beeping and deaf. So `MBot` sends nothing while a note plays, and of the
-packets that waited it sends only the newest of each kind.
+The firmware can do one thing at a time, and `MBot` works around two of its
+habits:
+
+- It plays a note with a blocking loop and reads its 64-byte serial buffer only
+  between commands. Packets that arrive during a note can overflow the buffer.
+- To change its lights it switches its interrupts off for about half a
+  millisecond (it drives a strip of 16 LEDs), and loses the bytes that arrive
+  meanwhile.
+
+A garbled packet can be taken for anything, such as a very long note that leaves
+the robot beeping and deaf. So `MBot` sends nothing while a note plays or for
+80 ms after a colour change, and of the packets that waited it sends only the
+newest of each kind.
+
+Following a line, exploring and the radar need the sensors read all the time.
+They ask for the robot's full attention (`hub.focus`): meanwhile the real buzzer
+stays silent (tunes still play on the device) and the real lights change at most
+twice a second. The line follower also says its wheel speeds again every 300 ms,
+so that one lost order is put right.

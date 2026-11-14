@@ -1,5 +1,6 @@
 import { MBot } from '../js/robot/mbot.js';
-import { tonePacket, wheelsPacket } from '../js/robot/protocol.js';
+import { RobotHub } from '../js/robot/hub.js';
+import { lightsPacket, tonePacket, wheelsPacket } from '../js/robot/protocol.js';
 import { DEFAULT_TUNING } from '../js/robot/tuning.js';
 import { equal, test } from './harness.js';
 
@@ -87,4 +88,44 @@ test('mbot: a step that bends to the right runs the left wheel faster', async ()
   await mbot.move(1, undefined, 10);
   const extra = (((10 * Math.PI) / 180) * 11.5) / (2 * 20);
   equal(link.sent, [[...wheelsPacket(150 * (1 + extra), 150 * (1 - extra))], [...wheelsPacket(0, 0)]]);
+});
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const RED = { rgb: [150, 0, 0] };
+const BLUE = { rgb: [0, 0, 150] };
+
+test('mbot: nothing is sent right after a colour change, when the robot cannot hear', async () => {
+  const { link, mbot } = robot();
+  await mbot.setLights(RED);
+  const driving = mbot.drive(100, 100);
+  await pause(20);
+  equal(link.sent, [[...lightsPacket(RED.rgb)]], 'sent 20 ms after the colour change:');
+  await driving;
+  equal(link.sent, [[...lightsPacket(RED.rgb)], [...wheelsPacket(100, 100)]]);
+});
+
+test('mbot: a job with its full attention silences the buzzer and slows the lights', async () => {
+  const { link, mbot } = robot();
+  mbot.focus(true);
+  await mbot.playTone(262, 40);
+  equal(link.sent, [], 'a note was sent:');
+  await mbot.setLights(RED);
+  const second = mbot.setLights(BLUE);
+  await pause(150);
+  equal(link.sent, [[...lightsPacket(RED.rgb)]], 'a second colour 150 ms after the first:');
+  await second;
+  equal(link.sent, [[...lightsPacket(RED.rgb)], [...lightsPacket(BLUE.rgb)]]);
+  mbot.focus(false);
+  await mbot.playTone(262, 1);
+  equal(link.sent.length, 3, 'the buzzer is back:');
+});
+
+test('hub: a job asks for the real robot\'s full attention, also one connected later', () => {
+  const asked = [];
+  const real = { focus: (on) => asked.push(on) };
+  const hub = new RobotHub({}, {});
+  hub.focus(true);
+  hub.attach(real);
+  hub.focus(false);
+  equal(asked, [true, false]);
 });

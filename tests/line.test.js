@@ -50,9 +50,16 @@ function scripted(readings) {
 test('line: the wheels are only told when what the sensors see changes', async () => {
   const robot = scripted([Line.BOTH, Line.BOTH, Line.LEFT, Line.LEFT, Line.BOTH]);
   let clock = 0;
-  const ended = await followLine(robot, { speed: 100, wait: noWait, now: () => (clock += 500) });
+  const ended = await followLine(robot, { speed: 100, wait: noWait, now: () => (clock += 10) });
   equal(ended, 'lost', 'with the line gone for good:');
-  equal(robot.driven, [[100, 100], [25, 100], [100, 100], [-60, -60]]);
+  equal(robot.driven.slice(0, 4), [[100, 100], [25, 100], [100, 100], [-60, -60]]);
+});
+
+test('line: the wheels are told again now and then, in case an order was lost', async () => {
+  const robot = scripted(Array(40).fill(Line.BOTH));
+  let clock = 0;
+  await followLine(robot, { speed: 100, wait: noWait, now: () => (clock += 10) });
+  equal(robot.driven.filter(([left, right]) => left === 100 && right === 100).length, 2, 'in 400 ms on the line:');
 });
 
 test('line: a robot that stops answering ends the following', async () => {

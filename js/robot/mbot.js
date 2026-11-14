@@ -15,6 +15,14 @@ const SEEK_POLL_MS = 80;
 const LIGHTS_OFF = [0, 0, 0];
 /** Time for a note to reach the robot and for the robot to start listening again after it. */
 const NOTE_MARGIN_MS = 80;
+/**
+ * To change its lights the firmware switches its interrupts off for about half a millisecond,
+ * and loses the bytes that arrive meanwhile. A packet sent this soon after a colour change could
+ * travel in the same Bluetooth burst and arrive right then, so nothing is sent for this long.
+ */
+const LIGHTS_DEAF_MS = 80;
+/** While a job has the robot's full attention, its lights change no more often than this. */
+const ATTENTIVE_LIGHTS_EVERY_MS = 500;
 /** A waiting note goes this much later than the other waiting packets, which it would otherwise keep waiting. */
 const NOTE_GOES_LAST_MS = 20;
 
@@ -27,6 +35,9 @@ export class MBot {
   #index = 0;
   /** When the robot will have finished its note and listens again. */
   #listensAt = 0;
+  /** A job that needs the sensors all the time is on: see `focus`. */
+  #focused = false;
+  #lightsSentAt = 0;
   /** The newest packet of each kind that is waiting for the robot to listen. */
   #newest = {};
 
@@ -86,12 +97,23 @@ export class MBot {
 
   /** `color` comes from the palette; null switches the lights off. */
   setLights(color) {
-    return this.#send(lightsPacket(color?.rgb ?? LIGHTS_OFF), { kind: 'lights' });
+    const notBefore = this.#focused ? this.#lightsSentAt + ATTENTIVE_LIGHTS_EVERY_MS : 0;
+    return this.#send(lightsPacket(color?.rgb ?? LIGHTS_OFF), { kind: 'lights', deafMs: LIGHTS_DEAF_MS, notBefore });
+  }
+
+  /**
+   * Gives a job the robot's full attention, or ends that. Following a line or exploring a room
+   * needs the sensors read all the time, and the robot reads nothing while it plays a note or
+   * changes its lights. So meanwhile the buzzer stays silent and the lights change slowly.
+   */
+  focus(on) {
+    this.#focused = on;
   }
 
   /** The note stops by itself after `ms`; until then the robot does nothing else. */
   playTone(hz, ms) {
-    return this.#send(tonePacket(hz, ms), { kind: 'tone', busyMs: ms });
+    if (this.#focused) return Promise.resolve();
+    return this.#send(tonePacket(hz, ms), { kind: 'tone', deafMs: ms + NOTE_MARGIN_MS, last: true });
   }
 
   /**
@@ -133,18 +155,21 @@ export class MBot {
 
   /**
    * Sends a packet when the robot is listening. The factory firmware does nothing else while it
-   * plays a note, and its buffer holds only 64 bytes: what arrives meanwhile can overflow it, and
-   * a garbled packet can be taken for a very long note. So packets wait for the note to end, and
-   * of several waiting packets of one `kind` only the newest is sent. `busyMs` is how long this
-   * packet keeps the robot busy.
+   * plays a note, and hears nothing while it changes its lights: what arrives meanwhile can
+   * overflow its 64-byte buffer or lose bytes, and a garbled packet can be taken for a very long
+   * note. So packets wait until the robot listens again, and of several waiting packets of one
+   * `kind` only the newest is sent. `deafMs` is how long this packet keeps the robot from
+   * listening; `last` lets the other waiting packets go first; `notBefore` is the earliest
+   * moment it may go.
    */
-  async #send(bytes, { kind = null, busyMs = 0 } = {}) {
+  async #send(bytes, { kind = null, deafMs = 0, last = false, notBefore = 0 } = {}) {
     const ticket = {};
     if (kind) this.#newest[kind] = ticket;
-    const wait = () => this.#listensAt + (busyMs > 0 ? NOTE_GOES_LAST_MS : 0) - performance.now();
+    const wait = () => Math.max(this.#listensAt + (last ? NOTE_GOES_LAST_MS : 0), notBefore) - performance.now();
     while (wait() > 0) await sleep(wait());
     if (kind && this.#newest[kind] !== ticket) return;
-    if (busyMs > 0) this.#listensAt = performance.now() + busyMs + NOTE_MARGIN_MS;
+    if (deafMs > 0) this.#listensAt = performance.now() + deafMs;
+    if (kind === 'lights') this.#lightsSentAt = performance.now();
     await this.#link.send(bytes, kind);
   }
 

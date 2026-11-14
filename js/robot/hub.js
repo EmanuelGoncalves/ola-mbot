@@ -9,6 +9,7 @@ export class RobotHub {
   #simulator;
   #tuning;
   #mbot = null;
+  #focused = false;
 
   constructor(simulator, tuning) {
     this.#simulator = simulator;
@@ -26,6 +27,16 @@ export class RobotHub {
 
   attach(mbot) {
     this.#mbot = mbot;
+    mbot.focus(this.#focused);
+  }
+
+  /**
+   * Tells the real robot that a job needs its full attention (see `MBot.focus`), or that it is
+   * over. The robot on screen can do everything at once.
+   */
+  focus(on) {
+    this.#focused = on;
+    this.#mbot?.focus(on);
   }
 
   detach() {

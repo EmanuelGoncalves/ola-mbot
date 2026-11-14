@@ -133,6 +133,7 @@ export const T = {
     eyesDistance: (cm) => `Está a ${Math.round(cm)} cm.`,
     line: 'Seguir a linha',
     lineHint: 'O mBot trouxe um circuito de papel com uma linha preta. Põe o robô em cima da linha e carrega no botão: ele segue-a sozinho, com os dois sensores que tem por baixo. No ecrã, o robô segue um circuito redondo.',
+    lineBusy: 'Enquanto segue a linha, o mBot precisa de toda a atenção: a música toca só neste aparelho e as luzes dele mudam mais devagar.',
     lineStart: 'Seguir a linha',
     lineStop: 'Parar',
     /** By what the two sensors see: both on the line, only the left, only the right, neither. */
