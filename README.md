@@ -1,5 +1,13 @@
 # Olá, mBot!
 
+> [!NOTE]
+> **Made with generative AI.** The code, the texts and the school exercises in
+> this repository were written with an AI assistant (Claude, by Anthropic),
+> directed and tried out by a person. They have not been fully reviewed and may
+> contain mistakes. The project is provided as is, without warranty of any kind:
+> use it at your own risk, and supervise children while the robot is moving. It
+> is a personal project, not affiliated with or endorsed by Makeblock.
+
 A web app in European Portuguese (PT-PT) for an eight-year-old to program a
 [Makeblock mBot](https://www.makeblock.com/pages/mbot-robot-kit) with blocks.
 It has six tabs:
