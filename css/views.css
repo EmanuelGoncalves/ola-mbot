@@ -321,18 +321,19 @@
   font-weight: 700;
 }
 
-.tuning {
+/* A box that opens to show more: the tuning sliders, the connection help */
+.fold {
   padding: 10px 14px;
   border: 2px solid var(--line);
   border-radius: var(--radius-small);
 }
 
-.tuning summary {
+.fold summary {
   font: 700 1rem/1.3 var(--font-display);
   cursor: pointer;
 }
 
-.tuning > * + * {
+.fold > * + * {
   margin-top: 12px;
 }
 

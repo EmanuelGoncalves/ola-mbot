@@ -19,12 +19,13 @@ export class BluetoothLink extends EventTarget {
     return Boolean(this.#writer && this.#device?.gatt?.connected);
   }
 
-  /** Opens the browser's device chooser and connects to the chosen robot. */
-  async connect() {
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: NAME_PREFIX }, { services: [SERVICE_UUID] }],
-      optionalServices: [SERVICE_UUID],
-    });
+  /**
+   * Opens the browser's device chooser and connects to the chosen robot.
+   * The chooser lists only mBots, or every device nearby with `anyDevice`.
+   */
+  async connect({ anyDevice = false } = {}) {
+    const which = anyDevice ? { acceptAllDevices: true } : { filters: [{ namePrefix: NAME_PREFIX }, { services: [SERVICE_UUID] }] };
+    const device = await navigator.bluetooth.requestDevice({ ...which, optionalServices: [SERVICE_UUID] });
     try {
       const server = await device.gatt.connect();
       const service = await server.getPrimaryService(SERVICE_UUID);

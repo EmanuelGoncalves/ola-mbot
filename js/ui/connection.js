@@ -23,6 +23,8 @@ export class Connection {
   #state = State.IDLE;
   /** The tuning test move in progress, if any. */
   #test = null;
+  /** Why the last connection failed, for a grown-up to read. */
+  #failure = '';
   #body = el('div', { class: 'dialog-body' });
 
   constructor({ hub, tuning, onOpen }) {
@@ -83,6 +85,7 @@ export class Connection {
     const connecting = this.#state === State.CONNECTING;
     return [
       this.#state === State.FAILED && el('p', { class: 'notice', text: T.connection.failed }),
+      this.#state === State.FAILED && el('p', { class: 'hint', text: T.connection.failure(this.#failure) }),
       this.#state === State.LOST && el('p', { class: 'notice', text: T.connection.lost }),
       el('ol', { class: 'steps' }, T.connection.steps.map((text) => el('li', { text }))),
       el(
@@ -90,17 +93,29 @@ export class Connection {
         { class: 'button button-brand button-big', type: 'button', disabled: connecting, onClick: () => this.#connect() },
         connecting ? T.connection.connecting : `🔍 ${T.connection.search}`,
       ),
+      el(
+        'details',
+        { class: 'fold' },
+        el('summary', { text: T.connection.missingTitle }),
+        el('ul', { class: 'steps' }, T.connection.missing.map((text) => el('li', { text }))),
+        el(
+          'button',
+          { class: 'button', type: 'button', disabled: connecting, onClick: () => this.#connect({ anyDevice: true }) },
+          T.connection.searchAll,
+        ),
+      ),
     ].filter(Boolean);
   }
 
-  async #connect() {
+  async #connect(options) {
     this.#setState(State.CONNECTING);
     try {
-      await this.#link.connect();
+      await this.#link.connect(options);
       this.#hub.attach(this.#mbot);
       this.#setState(State.CONNECTED);
       await this.#sayHello();
     } catch (error) {
+      this.#failure = `${error?.name}: ${error?.message}`;
       this.#setState(FAILURE_STATE[error?.name] ?? State.FAILED);
       if (error?.name !== CHOOSER_CLOSED) console.warn('mBot connection failed', error);
     }
@@ -119,7 +134,7 @@ export class Connection {
   #tuningSection() {
     return el(
       'details',
-      { class: 'tuning' },
+      { class: 'fold' },
       el('summary', { text: T.connection.tuningTitle }),
       el('p', { class: 'hint', text: T.connection.tuningIntro }),
       this.#slider('stepMs', T.connection.stepTime, T.connection.testStep, (signal) => this.#hub.move(1, signal)),
