@@ -191,6 +191,15 @@ Packets follow the factory firmware's parser
 
 Bluetooth service `ffe1`; write to characteristic `ffe3`, notifications on `ffe2`.
 
+The link (`js/robot/bluetooth.js`) writes one packet at a time and gives up a
+write that does not end in 1.5 s. Of the packets of one kind still waiting
+(wheels, lights, notes), only the newest is written, so a slow link does not
+fall behind. A robot that goes away by itself, or a link that takes nothing any
+more, is reconnected without asking, three times at most. On an iPad the search
+lists every device nearby, because the browsers there do not find the mBot by
+its name or its service. The dialog shows how the link is doing: packets sent
+and failed, the slowest write, and how often the link was started again.
+
 The firmware plays a note with a blocking loop and reads its 64-byte serial
 buffer only between commands. Packets that arrive during a note can overflow the
 buffer, and a garbled packet can be taken for a very long note, which leaves the

@@ -145,7 +145,7 @@ export class MBot {
     while (wait() > 0) await sleep(wait());
     if (kind && this.#newest[kind] !== ticket) return;
     if (busyMs > 0) this.#listensAt = performance.now() + busyMs + NOTE_MARGIN_MS;
-    await this.#link.send(bytes);
+    await this.#link.send(bytes, kind);
   }
 
   async #driveFor(left, right, ms, signal) {

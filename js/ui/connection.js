@@ -1,13 +1,14 @@
 import { el } from '../dom.js';
-import { BluetoothLink } from '../robot/bluetooth.js';
+import { BluetoothLink, listsAllDevices } from '../robot/bluetooth.js';
 import { MBot } from '../robot/mbot.js';
 import { colorById, noteById } from '../robot/palette.js';
 import { countSpins, measureStep, sweep } from '../robot/radar.js';
 import { saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
+import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
 
-const State = { IDLE: 'idle', CONNECTING: 'connecting', CONNECTED: 'connected', FAILED: 'failed', LOST: 'lost', BLOCKED: 'blocked' };
+const State = { IDLE: 'idle', CONNECTING: 'connecting', CONNECTED: 'connected', REPAIRING: 'repairing', FAILED: 'failed', LOST: 'lost', BLOCKED: 'blocked' };
 const CHOOSER_CLOSED = 'NotFoundError';
 const NOT_ALLOWED = 'SecurityError';
 const HELLO_NOTE_MS = 200;
@@ -28,6 +29,13 @@ export class Connection {
   #test = null;
   /** Why the last connection failed, for a grown-up to read. */
   #failure = '';
+  /**
+   * The search lists every device nearby, not only mBots: where the browser cannot tell an mBot
+   * from the rest (iPad), or once that was how the robot was found.
+   */
+  #allDevices = load('all-devices', listsAllDevices());
+  /** The help for a robot missing from the list is open: a search has just come back empty-handed. */
+  #missingOpen = false;
   /** The tuning sliders by name: `{ input, readout, format }`. */
   #sliders = {};
   #fitReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
@@ -59,18 +67,27 @@ export class Connection {
       this.#hub.detach();
       this.#setState(State.LOST);
     });
+    // The robot went away by itself: whatever it was doing stops, while the link tries to get it back.
+    this.#link.addEventListener('repairing', () => {
+      this.#test?.abort();
+      onOpen();
+      this.#setState(State.REPAIRING);
+    });
+    this.#link.addEventListener('repaired', () => this.#setState(State.CONNECTED));
     this.#setState(State.IDLE);
   }
 
   #open(onOpen) {
     onOpen();
+    this.#setState(this.#state); // brings what the dialog says up to date
     this.dialog.showModal();
   }
 
   #setState(state) {
     this.#state = state;
     const connected = state === State.CONNECTED;
-    const label = connected ? T.connection.connected : state === State.CONNECTING ? T.connection.connecting : T.connection.connect;
+    const busy = state === State.CONNECTING || state === State.REPAIRING;
+    const label = connected ? T.connection.connected : busy ? T.connection.connecting : T.connection.connect;
     this.button.replaceChildren(el('span', { 'aria-hidden': 'true', text: connected ? '✅' : '🔌' }), label);
     this.button.classList.toggle('is-connected', connected);
     this.#body.replaceChildren(...this.#bodyContent());
@@ -90,6 +107,13 @@ export class Connection {
           el('button', { class: 'button button-brand', type: 'button', onClick: () => this.#sayHello() }, '✨ ', T.connection.test),
           el('button', { class: 'button', type: 'button', onClick: () => this.#link.disconnect() }, T.connection.disconnect),
         ),
+        el('p', { class: 'hint', text: T.connection.health(this.#link.health) }),
+      ];
+    }
+    if (this.#state === State.REPAIRING) {
+      return [
+        el('p', { class: 'notice', text: T.connection.repairing }),
+        el('div', { class: 'row' }, el('button', { class: 'button', type: 'button', onClick: () => this.#link.disconnect() }, T.connection.disconnect)),
       ];
     }
     const connecting = this.#state === State.CONNECTING;
@@ -100,32 +124,42 @@ export class Connection {
       el('ol', { class: 'steps' }, T.connection.steps.map((text) => el('li', { text }))),
       el(
         'button',
-        { class: 'button button-brand button-big', type: 'button', disabled: connecting, onClick: () => this.#connect() },
+        { class: 'button button-brand button-big', type: 'button', disabled: connecting, onClick: () => this.#connect({ anyDevice: this.#allDevices }) },
         connecting ? T.connection.connecting : `🔍 ${T.connection.search}`,
       ),
+      this.#allDevices && el('p', { class: 'hint', text: T.connection.allDevices }),
       el(
         'details',
-        { class: 'fold' },
+        { class: 'fold', open: this.#missingOpen },
         el('summary', { text: T.connection.missingTitle }),
         el('ul', { class: 'steps' }, T.connection.missing.map((text) => el('li', { text }))),
-        el(
-          'button',
-          { class: 'button', type: 'button', disabled: connecting, onClick: () => this.#connect({ anyDevice: true }) },
-          T.connection.searchAll,
-        ),
+        !this.#allDevices &&
+          el(
+            'button',
+            { class: 'button', type: 'button', disabled: connecting, onClick: () => this.#connect({ anyDevice: true }) },
+            T.connection.searchAll,
+          ),
       ),
     ].filter(Boolean);
   }
 
-  async #connect(options) {
+  async #connect({ anyDevice }) {
     this.#setState(State.CONNECTING);
     try {
-      await this.#link.connect(options);
+      await this.#link.connect({ anyDevice });
+      if (anyDevice && !this.#allDevices) {
+        // The robot was only found among all the devices: next time, the search starts there.
+        this.#allDevices = true;
+        save('all-devices', true);
+      }
+      this.#missingOpen = false;
       this.#hub.attach(this.#mbot);
       this.#setState(State.CONNECTED);
       await this.#sayHello();
     } catch (error) {
       this.#failure = `${error?.name}: ${error?.message}`;
+      // A search for mBots only that was closed: most likely the robot was not in the list.
+      this.#missingOpen = error?.name === CHOOSER_CLOSED && !anyDevice;
       this.#setState(FAILURE_STATE[error?.name] ?? State.FAILED);
       if (error?.name !== CHOOSER_CLOSED) console.warn('mBot connection failed', error);
     }

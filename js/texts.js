@@ -227,6 +227,10 @@ export const T = {
       'O mBot tem de ser a versão Bluetooth. A versão 2.4G, que traz uma pen USB, não se liga desta maneira.',
     ],
     searchAll: 'Mostrar todos os aparelhos',
+    allDevices: 'A lista mostra todos os aparelhos que estão perto. Procura o que tem um nome começado por «Makeblock».',
+    repairing: 'O mBot desligou-se sozinho. Estou a tentar ligá-lo outra vez…',
+    health: ({ sent, failed, slowestMs, repairs }) =>
+      `Para os pais, o estado da ligação: ${sent} ordens enviadas, ${failed} falhadas; a mais lenta levou ${slowestMs} ms; ligação refeita ${repairs} ${repairs === 1 ? 'vez' : 'vezes'}.`,
     ready: 'O mBot está ligado! Tudo o que o robô do ecrã fizer, ele faz também.',
     lost: 'O mBot desligou-se. Podes continuar com o robô do ecrã.',
     test: 'Experimentar luz e som',
