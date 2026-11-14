@@ -2,7 +2,7 @@ import { el } from '../dom.js';
 import { JINGLES, playJingle } from '../jingles.js';
 import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
-import { distinct, locate, SCAN, sweep } from '../robot/radar.js';
+import { distinct, locate, measure, sameSight, sweep } from '../robot/radar.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -179,13 +179,15 @@ export class DriveView {
     this.#scan = scan;
     this.#showScanning(true);
     this.#simulator.showSightings([]);
-    this.#mapStatus.textContent = T.drive.mapScanning(0, SCAN.stops);
+    const { scanStops, scanStepMs } = this.#tuning;
+    this.#mapStatus.textContent = T.drive.mapScanning(0, scanStops);
     try {
       const seen = await sweep(this.#hub, {
-        stepMs: this.#tuning.scanStepMs,
+        stops: scanStops,
+        stepMs: scanStepMs,
         signal: scan.signal,
         onStop: (reading) => {
-          this.#mapStatus.textContent = T.drive.mapScanning(++stops, SCAN.stops);
+          this.#mapStatus.textContent = T.drive.mapScanning(++stops, scanStops);
           if (reading.range === null) return;
           this.#simulator.showSightings([...this.#simulator.sightings, { from: pose, to: locate(pose, reading).spot }]);
         },
@@ -193,8 +195,11 @@ export class DriveView {
       if (!real) {
         this.#mapStatus.textContent = T.drive.mapOnScreen;
       } else if (this.#hub.connected) {
+        // Back where it started, the robot should see what it saw at first.
+        const fullCircle = sameSight(seen[0].range, await measure(this.#hub, { signal: scan.signal }));
         this.#simulator.setBoxes(distinct(seen).map((reading) => locate(pose, reading).cell));
-        this.#mapStatus.textContent = T.drive.mapFound(this.#simulator.boxes.length);
+        const found = T.drive.mapFound(this.#simulator.boxes.length);
+        this.#mapStatus.textContent = fullCircle ? found : `${found} ${T.drive.mapNotFullCircle}`;
       } else {
         this.#mapStatus.textContent = T.drive.mapStopped; // the mBot went away half-way: the readings cannot be trusted
       }

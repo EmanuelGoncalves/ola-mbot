@@ -42,6 +42,14 @@ export class RobotHub {
     return this.#both((robot) => robot.rotate(degrees, ms, signal));
   }
 
+  /**
+   * Spins only the real robot, clockwise, during `ms`. For counting how many such spins make a
+   * full turn: until then nobody knows how far the robot on screen should turn with it.
+   */
+  spinReal(ms, signal) {
+    return this.#real((robot) => robot.rotate(1, ms, signal));
+  }
+
   moveUntilObstacle(signal) {
     return this.#both((robot) => robot.moveUntilObstacle(signal));
   }

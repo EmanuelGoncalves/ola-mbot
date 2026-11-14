@@ -63,14 +63,22 @@ the mBot measure its own step against a wall with its ultrasonic sensor and sets
 the step time from it. The eyes call something an obstacle when it is less than
 one square away, as on screen.
 
-"Conduzir → Mapa da sala" turns the robot once around in 12 short spins. At each
+"Conduzir → Mapa da sala" turns the robot once around in short spins. At each
 stop it reads the distance 7 times and keeps the average of the middle readings,
 so a missed echo or a wild value does not count. Each distance becomes a point
 on the mat, and the squares with something in them become boxes. The sensor sees
 in a wide cone, so one thing seen by neighbouring looks is counted once
-(`distinct` in `js/robot/radar.js`). It is a coarse map: turns are timed, not
-measured, and the cone is about 30° wide. Without a robot connected, the radar
-only draws what the robot on screen sees.
+(`distinct` in `js/robot/radar.js`). Without a robot connected, the radar only
+draws what the robot on screen sees.
+
+A short spin turns the robot less than its time suggests, because the motors
+need a moment to get going, so the number of spins in a full turn has to be
+found on the real robot. "Contar as rodadelas sozinho" does it with the sensor:
+with one box close in front and nothing else near, the robot spins until it has
+lost the box and found it again. After every scan the robot also checks that it
+sees again what it saw at first, and says so when the turn was not a full one.
+It stays a coarse map: turns are timed, not measured, and the cone is about 30°
+wide.
 
 ## Layout
 
@@ -132,3 +140,9 @@ Packets follow the factory firmware's parser
 | Read distance | `ff 55 04 <index> 01 01 03` → `ff 55 <index> 02 <float32> 0d 0a` |
 
 Bluetooth service `ffe1`; write to characteristic `ffe3`, notifications on `ffe2`.
+
+The firmware plays a note with a blocking loop and reads its 64-byte serial
+buffer only between commands. Packets that arrive during a note can overflow the
+buffer, and a garbled packet can be taken for a very long note, which leaves the
+robot beeping and deaf. So `MBot` sends nothing while a note plays, and of the
+packets that waited it sends only the newest of each kind.

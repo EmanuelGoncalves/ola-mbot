@@ -2,7 +2,7 @@ import { el } from '../dom.js';
 import { BluetoothLink } from '../robot/bluetooth.js';
 import { MBot } from '../robot/mbot.js';
 import { colorById, noteById } from '../robot/palette.js';
-import { measureStep, sweep } from '../robot/radar.js';
+import { countSpins, measureStep, sweep } from '../robot/radar.js';
 import { saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -31,6 +31,7 @@ export class Connection {
   /** The tuning sliders by name: `{ input, readout, format }`. */
   #sliders = {};
   #fitReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
+  #spinReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
   #body = el('div', { class: 'dialog-body' });
 
   constructor({ hub, tuning, onOpen }) {
@@ -153,9 +154,13 @@ export class Connection {
       this.#fitReport,
       this.#slider('quarterTurnMs', T.connection.turnTime, T.connection.milliseconds, T.connection.testTurn, (signal) => this.#hub.turn(1, signal)),
       el('p', { class: 'hint', text: T.connection.scanIntro }),
-      this.#slider('scanStepMs', T.connection.scanTime, T.connection.milliseconds, T.connection.testScan, (signal) =>
-        sweep(this.#hub, { stepMs: this.#tuning.scanStepMs, signal }),
+      this.#slider('scanStepMs', T.connection.scanTime, T.connection.milliseconds),
+      this.#slider('scanStops', T.connection.scanStops, String, T.connection.testScan, (signal) =>
+        sweep(this.#hub, { stops: this.#tuning.scanStops, stepMs: this.#tuning.scanStepMs, signal }),
       ),
+      el('p', { class: 'hint', text: T.connection.spinIntro }),
+      this.#testButton(`🧭 ${T.connection.countSpins}`, (signal) => this.#countSpins(signal)),
+      this.#spinReport,
       el('p', { class: 'hint', text: T.connection.flipIntro }),
       this.#flip('flipDrive', T.connection.flipDrive),
       this.#flip('flipTurn', T.connection.flipTurn),
@@ -205,12 +210,22 @@ export class Connection {
     saveTuning(this.#tuning);
   }
 
+  /** Lets the mBot count, with its eyes, how many radar spins make a full turn. */
+  async #countSpins(signal) {
+    const report = (text) => show(this.#spinReport, text);
+    if (!this.#hub.connected) return report(T.connection.fitNeedsRobot);
+    report(T.connection.spinCounting);
+    const spins = await countSpins(this.#hub, { stepMs: this.#tuning.scanStepMs, signal });
+    const { min, max } = TUNING_LIMITS.scanStops;
+    // If the mBot went away half-way, part of the count came from the robot on screen.
+    if (!this.#hub.connected || spins === null || spins < min || spins > max) return report(T.connection.spinFailed);
+    this.#set('scanStops', spins);
+    report(T.connection.spinDone(spins));
+  }
+
   /** Lets the mBot measure its own step with its eyes, and sets the step time from it. */
   async #fitStep(signal) {
-    const report = (text) => {
-      this.#fitReport.textContent = text;
-      this.#fitReport.hidden = false;
-    };
+    const report = (text) => show(this.#fitReport, text);
     if (!this.#hub.connected) return report(T.connection.fitNeedsRobot);
     const squares = await measureStep(this.#hub, { signal });
     // If the mBot went away half-way, part of the measurement came from the robot on screen.
@@ -233,4 +248,9 @@ export class Connection {
       this.#test = null;
     }
   }
+}
+
+function show(note, text) {
+  note.textContent = text;
+  note.hidden = false;
 }

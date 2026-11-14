@@ -134,6 +134,7 @@ export const T = {
     mapScanning: (stop, total) => `A olhar à volta… ${stop} de ${total}`,
     mapFound: (boxes) =>
       boxes === 0 ? 'Não vi nada por perto. O caminho está livre!' : boxes === 1 ? 'Vi uma coisa e pus 1 caixa no tapete.' : `Vi coisas à volta e pus ${boxes} caixas no tapete.`,
+    mapNotFullCircle: 'Mas o robô parece não ter dado a volta certinha, e as caixas podem estar no sítio errado. Pede a um adulto para afinar o radar em «Ligar ao robô».',
     mapOnScreen: 'Isto foi o robô do ecrã a ver as caixas do tapete. Com o mBot verdadeiro ligado, ele faz o mapa da tua sala!',
     mapStopped: 'Parei a meio. Quando quiseres, começamos outra vez.',
     mapCleared: 'O tapete ficou limpo.',
@@ -186,8 +187,17 @@ export const T = {
     fitNeedsRobot: 'Ligue primeiro o mBot verdadeiro.',
     fitFailed: 'Não consegui medir. O mBot tem de estar virado de frente para uma parede lisa, a cerca de um metro.',
     fitDone: (cm, ms) => `O mBot andou ${cm} cm. Mudei o tempo de um passo para ${seconds(ms)}. Carregue outra vez para confirmar.`,
-    scanIntro: 'Para o mapa da sala, o mBot dá uma volta inteira em 12 rodadelas curtas. Ajuste o tempo até ele acabar virado para onde começou.',
+    scanIntro:
+      'Para o mapa da sala, o mBot dá uma volta inteira em rodadelas curtas, e para a olhar em cada uma. Uma rodadela curta roda menos do que parece: se o mBot não chegar a dar a volta toda, aumente o número de rodadelas e teste outra vez.',
     scanTime: 'Radar: tempo de cada rodadela',
+    scanStops: 'Radar: rodadelas numa volta inteira',
+    spinIntro:
+      'O mBot também pode contar as rodadelas sozinho. Ponha-o num sítio livre, com uma caixa a um palmo mesmo à frente dele e mais nada por perto. Ele roda até voltar a ver a caixa.',
+    countSpins: 'Contar as rodadelas sozinho',
+    spinCounting: 'A contar… O mBot vai rodando até voltar a ver a caixa.',
+    spinFailed:
+      'Não consegui contar. O mBot precisa de uma só coisa perto, mesmo à frente dele, e de espaço livre à volta. Se ele quase não rodar, aumente o tempo de cada rodadela.',
+    spinDone: (spins) => `Uma volta inteira são ${spins} rodadelas. O radar já ficou afinado.`,
     testScan: 'Testar a volta do radar',
     stepTime: 'Tempo de um passo',
     turnTime: 'Tempo de um quarto de volta',

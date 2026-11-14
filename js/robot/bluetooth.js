@@ -1,6 +1,8 @@
 import { NOTIFY_UUID, SERVICE_UUID, WRITE_UUID } from './protocol.js';
 
 const NAME_PREFIX = 'Makeblock';
+/** A write that takes longer than this is given up, so that the ones waiting behind it can go. */
+const WRITE_LIMIT_MS = 1500;
 
 /**
  * Bluetooth Low Energy link to the mBot.
@@ -56,10 +58,16 @@ export class BluetoothLink extends EventTarget {
   async #write(bytes) {
     if (!this.connected) return;
     const writer = this.#writer;
-    if (writer.writeValueWithoutResponse && writer.properties?.writeWithoutResponse) {
-      await writer.writeValueWithoutResponse(bytes);
-    } else {
-      await writer.writeValue(bytes);
+    const quick = writer.writeValueWithoutResponse && writer.properties?.writeWithoutResponse;
+    const written = quick ? writer.writeValueWithoutResponse(bytes) : writer.writeValue(bytes);
+    let timer;
+    const tooLong = new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('The mBot did not take the command in time')), WRITE_LIMIT_MS);
+    });
+    try {
+      await Promise.race([written, tooLong]);
+    } finally {
+      clearTimeout(timer);
     }
   }
 

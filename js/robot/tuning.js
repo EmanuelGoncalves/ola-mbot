@@ -4,7 +4,7 @@ import { load, save } from '../storage.js';
  * The mBot has no wheel sensors, so a step and a turn are timed motor runs.
  * These times are shared by the real robot and the one on screen.
  * `cellCm` is the size of one square of the mat on the real floor.
- * `scanStepMs` is the short spin between two looks of the radar.
+ * `scanStepMs` is the short spin between two looks of the radar, and `scanStops` how many of them make a full turn.
  * `flipDrive` and `flipTurn` put right a real robot whose motors were plugged in the other way round.
  */
 export const DEFAULT_TUNING = Object.freeze({
@@ -12,7 +12,8 @@ export const DEFAULT_TUNING = Object.freeze({
   stepMs: 600,
   quarterTurnMs: 420,
   cellCm: 20,
-  scanStepMs: 140,
+  scanStepMs: 170,
+  scanStops: 12,
   flipDrive: false,
   flipTurn: false,
 });
@@ -22,6 +23,7 @@ export const TUNING_LIMITS = Object.freeze({
   quarterTurnMs: { min: 200, max: 1200, step: 10 },
   cellCm: { min: 15, max: 40, step: 1 },
   scanStepMs: { min: 60, max: 400, step: 5 },
+  scanStops: { min: 6, max: 40, step: 1 },
 });
 
 export function loadTuning() {

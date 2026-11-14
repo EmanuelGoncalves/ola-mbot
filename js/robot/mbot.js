@@ -9,6 +9,10 @@ export const OUT_OF_SIGHT_CM = 400;
 const SEEK_LIMIT_MS = 8000;
 const SEEK_POLL_MS = 80;
 const LIGHTS_OFF = [0, 0, 0];
+/** Time for a note to reach the robot and for the robot to start listening again after it. */
+const NOTE_MARGIN_MS = 80;
+/** A waiting note goes this much later than the other waiting packets, which it would otherwise keep waiting. */
+const NOTE_GOES_LAST_MS = 20;
 
 /** The real mBot, driven over a link that has `send(bytes)` and `data` events. */
 export class MBot {
@@ -17,7 +21,10 @@ export class MBot {
   #parser = new ReplyParser();
   #waiting = new Map();
   #index = 0;
-  #silence = null;
+  /** When the robot will have finished its note and listens again. */
+  #listensAt = 0;
+  /** The newest packet of each kind that is waiting for the robot to listen. */
+  #newest = {};
 
   constructor(link, tuning) {
     this.#link = link;
@@ -30,7 +37,7 @@ export class MBot {
     const { flipDrive, flipTurn } = this.#tuning;
     const ahead = ((left + right) / 2) * (flipDrive ? -1 : 1);
     const spin = ((left - right) / 2) * (flipTurn ? -1 : 1);
-    return this.#link.send(wheelsPacket(ahead + spin, ahead - spin));
+    return this.#send(wheelsPacket(ahead + spin, ahead - spin), { kind: 'wheels' });
   }
 
   stop() {
@@ -69,14 +76,12 @@ export class MBot {
 
   /** `color` comes from the palette; null switches the lights off. */
   setLights(color) {
-    return this.#link.send(lightsPacket(color?.rgb ?? LIGHTS_OFF));
+    return this.#send(lightsPacket(color?.rgb ?? LIGHTS_OFF), { kind: 'lights' });
   }
 
-  async playTone(hz, ms) {
-    await this.#link.send(tonePacket(hz, ms));
-    // Older firmware ignores the duration, so silence the buzzer ourselves, unless a newer note is playing by then.
-    clearTimeout(this.#silence);
-    this.#silence = setTimeout(() => this.#link.send(tonePacket(0, 0)).catch(() => {}), ms);
+  /** The note stops by itself after `ms`; until then the robot does nothing else. */
+  playTone(hz, ms) {
+    return this.#send(tonePacket(hz, ms), { kind: 'tone', busyMs: ms });
   }
 
   /**
@@ -96,10 +101,27 @@ export class MBot {
   async readDistance() {
     const index = (this.#index = (this.#index % LAST_INDEX) + 1);
     const reply = new Promise((resolve) => this.#waiting.set(index, resolve));
-    await this.#link.send(distanceRequest(index));
+    await this.#send(distanceRequest(index));
     const cm = await Promise.race([reply, sleep(REPLY_TIMEOUT_MS).then(() => null)]);
     this.#waiting.delete(index);
     return cm;
+  }
+
+  /**
+   * Sends a packet when the robot is listening. The factory firmware does nothing else while it
+   * plays a note, and its buffer holds only 64 bytes: what arrives meanwhile can overflow it, and
+   * a garbled packet can be taken for a very long note. So packets wait for the note to end, and
+   * of several waiting packets of one `kind` only the newest is sent. `busyMs` is how long this
+   * packet keeps the robot busy.
+   */
+  async #send(bytes, { kind = null, busyMs = 0 } = {}) {
+    const ticket = {};
+    if (kind) this.#newest[kind] = ticket;
+    const wait = () => this.#listensAt + (busyMs > 0 ? NOTE_GOES_LAST_MS : 0) - performance.now();
+    while (wait() > 0) await sleep(wait());
+    if (kind && this.#newest[kind] !== ticket) return;
+    if (busyMs > 0) this.#listensAt = performance.now() + busyMs + NOTE_MARGIN_MS;
+    await this.#link.send(bytes);
   }
 
   async #driveFor(left, right, ms, signal) {

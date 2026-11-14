@@ -1,5 +1,5 @@
 import { MBot } from '../js/robot/mbot.js';
-import { wheelsPacket } from '../js/robot/protocol.js';
+import { tonePacket, wheelsPacket } from '../js/robot/protocol.js';
 import { DEFAULT_TUNING } from '../js/robot/tuning.js';
 import { equal, test } from './harness.js';
 
@@ -71,4 +71,13 @@ test('mbot: a radar spin runs the wheels in opposite ways, then stops', async ()
   const { link, mbot } = robot();
   await mbot.rotate(30, 1);
   equal(link.sent, [[...wheelsPacket(150, -150)], [...wheelsPacket(0, 0)]]);
+});
+
+test('mbot: nothing is sent while a note plays, and then only the newest of each kind', async () => {
+  const { link, mbot } = robot();
+  await mbot.playTone(262, 40);
+  const waiting = [mbot.drive(100, 100), mbot.playTone(294, 40), mbot.drive(50, 50), mbot.playTone(330, 40)];
+  equal(link.sent, [[...tonePacket(262, 40)]], 'sent during the note:');
+  await Promise.all(waiting);
+  equal(link.sent, [[...tonePacket(262, 40)], [...wheelsPacket(50, 50)], [...tonePacket(330, 40)]]);
 });
