@@ -11,6 +11,8 @@ const TEST_SQUARES = 3;
 const TURN_REST_MS = 250;
 /** One tap on "rodou de menos" or "rodou demais" changes the quarter turn by this part. */
 const TURN_NUDGE = 0.04;
+/** How often the sensors under the robot are read while they are being watched. */
+const WATCH_EVERY_MS = 120;
 
 /**
  * The "Mapas" tab: the printed maps, their missions by level, and a way to tune the real robot
@@ -29,6 +31,11 @@ export class MapsView {
   #went = el('input', { id: 'map-went', type: 'range', min: 0.5, max: 6, step: 0.1, value: TEST_SQUARES, onInput: () => this.#showWent() });
   #wentReadout = el('output', { for: 'map-went' });
   #report = el('p', { class: 'hint', 'aria-live': 'polite' });
+  /** The watching of the sensors under the robot, while it is on. */
+  #watch = null;
+  #watchButton = el('button', { class: 'button', type: 'button', onClick: () => this.#toggleWatch() });
+  #eyes = [el('span', { class: 'floor-eye' }), el('span', { class: 'floor-eye' })];
+  #seen = el('p', { class: 'hint', 'aria-live': 'polite' });
   #tuner;
 
   constructor({ board, hub, tuning, tune, onPlay }) {
@@ -41,12 +48,14 @@ export class MapsView {
     this.element = el('div', { class: 'maps-view' });
     board.addEventListener('change', () => this.#render());
     this.#showWent();
+    this.#drawWatch();
     this.#render();
   }
 
-  /** Stops a test move. */
+  /** Stops a test move and the watching of the sensors. */
   stop() {
     this.#test?.abort();
+    this.#watch?.abort();
   }
 
   #render() {
@@ -150,7 +159,50 @@ export class MapsView {
         button(`↪️ ${T.maps.turnMore}`, () => this.#nudgeTurn(-1)),
       ),
       this.#report,
+      el('p', { text: T.maps.floorIntro }),
+      el('div', { class: 'row' }, this.#watchButton, el('div', { class: 'floor-eyes', role: 'img', 'aria-label': T.maps.floorEyes }, this.#eyes)),
+      this.#seen,
     );
+  }
+
+  /**
+   * Shows what the two sensors under the real robot see, light or dark, a few times a second,
+   * and counts how often that changed: pushed by hand over a line of the map, the robot tells
+   * whether it can see the line.
+   */
+  async #toggleWatch() {
+    if (this.#watch) return this.#watch.abort();
+    if (!this.#hub.real) {
+      this.#seen.textContent = T.maps.tuneNeedsRobot;
+      return;
+    }
+    const watch = new AbortController();
+    this.#watch = watch;
+    this.#drawWatch();
+    let [last, changes] = [null, 0];
+    try {
+      while (this.#hub.real) {
+        const seen = await this.#hub.readLine();
+        if (seen !== null) {
+          if (last !== null && seen !== last) changes += 1;
+          last = seen;
+          // The sensors answer 0 with both over something dark, 1 with only the left one, 2 with only the right one, 3 with neither.
+          this.#eyes[0].classList.toggle('is-dark', seen === 0 || seen === 1);
+          this.#eyes[1].classList.toggle('is-dark', seen === 0 || seen === 2);
+          this.#seen.textContent = T.maps.floorSeen(changes);
+        }
+        await sleep(WATCH_EVERY_MS, watch.signal);
+      }
+    } catch (error) {
+      if (!isAbort(error)) throw error;
+    } finally {
+      this.#watch = null;
+      this.#drawWatch();
+    }
+  }
+
+  #drawWatch() {
+    this.#watchButton.textContent = this.#watch ? `■ ${T.maps.floorStop}` : `🔦 ${T.maps.floorWatch}`;
   }
 
   #showWent() {

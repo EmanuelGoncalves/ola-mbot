@@ -112,6 +112,12 @@ export const T = {
     turnLess: 'Rodou de menos',
     turnMore: 'Rodou demais',
     turnDone: (ms) => `Um quarto de volta demora agora ${seconds(ms)}. Experimente outra vez.`,
+    floorIntro:
+      'O sensor de baixo: são dois olhinhos que só distinguem claro de escuro. Para saber se veem as linhas do mapa, ligue o botão e empurre o mBot devagar, à mão, por cima de uma linha. Se os dois quadrados mudarem ao passar a linha, o mBot consegue vê-la.',
+    floorWatch: 'Ver o que o sensor vê',
+    floorStop: 'Parar de ver',
+    floorEyes: 'O que veem o sensor da esquerda e o da direita: claro ou escuro',
+    floorSeen: (changes) => `O que o sensor vê mudou ${changes} ${changes === 1 ? 'vez' : 'vezes'} desde que ligou o botão.`,
   },
 
   school: {
@@ -341,6 +347,8 @@ export const T = {
     tuningTitle: 'Afinar o robô (para os pais)',
     tuningIntro:
       'O mBot não mede a distância que anda: um passo é um tempo com os motores ligados. Ajuste os tempos até um passo ter o tamanho de um quadrado do tapete e o quarto de volta ficar certinho. As pilhas e o chão mudam o resultado.',
+    resetTuning: 'Repor os valores de origem',
+    resetDone: 'Feito: os tempos voltaram a ser os que foram medidos num mBot verdadeiro.',
     cellSize: 'Tamanho de um quadrado do tapete',
     centimetres: (cm) => `${cm} cm`,
     fitIntro: 'O mBot pode medir o passo sozinho. Ponha-o virado de frente para uma parede lisa, a cerca de um metro, e carregue no botão: ele dá um passo em frente e outro para trás, mede com os olhos quanto andou e acerta o tempo.',

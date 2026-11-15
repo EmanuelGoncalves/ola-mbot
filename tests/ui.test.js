@@ -5,6 +5,7 @@ import { Simulator } from '../js/robot/simulator.js';
 import { DEFAULT_TUNING } from '../js/robot/tuning.js';
 import { exercisesOf, SUBJECTS, YEARS } from '../js/school.js';
 import { Tutorial } from '../js/tutorial.js';
+import { Connection } from '../js/ui/connection.js';
 import { DriveView } from '../js/ui/drive-view.js';
 import { LearnView } from '../js/ui/learn-view.js';
 import { MapsView } from '../js/ui/maps-view.js';
@@ -136,3 +137,14 @@ test('ui: taking every colour out of a show can be undone', () => {
   equal(row(), before);
   ok(buttonNamed(view, 'Tirar todas'), 'the button is back to taking colours out');
 });
+
+test('ui: the tuning can be put back to the values measured on a real mBot', () => {
+  const { hub } = parts();
+  const tuning = { ...DEFAULT_TUNING, stepMs: 700, quarterTurnMs: 900, scanStops: 20, flipTurn: true };
+  const { dialog } = new Connection({ hub, tuning, onOpen: nothing });
+  buttonNamed(dialog, 'Repor os valores de origem').click();
+  equal([tuning.stepMs, tuning.quarterTurnMs, tuning.scanStops], [DEFAULT_TUNING.stepMs, DEFAULT_TUNING.quarterTurnMs, DEFAULT_TUNING.scanStops]);
+  equal(tuning.flipTurn, true, 'the switch for motors plugged the other way round:');
+  equal(Number(dialog.querySelector('#tuning-stepMs').value), DEFAULT_TUNING.stepMs, 'the slider follows:');
+});
+

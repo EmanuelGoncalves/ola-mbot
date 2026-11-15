@@ -50,6 +50,7 @@ export class Connection {
   #sliders = {};
   #fitReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
   #spinReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
+  #resetReport = el('p', { class: 'notice', 'aria-live': 'polite', hidden: true });
   #body = el('div', { class: 'dialog-body' });
 
   constructor({ hub, tuning, onOpen }) {
@@ -208,6 +209,8 @@ export class Connection {
       { class: 'fold' },
       el('summary', { text: T.connection.tuningTitle }),
       el('p', { class: 'hint', text: T.connection.tuningIntro }),
+      el('button', { class: 'button', type: 'button', onClick: () => this.#resetTuning() }, '↺ ', T.connection.resetTuning),
+      this.#resetReport,
       this.#slider('cellCm', T.connection.cellSize, T.connection.centimetres),
       this.#slider('stepMs', T.connection.stepTime, T.connection.milliseconds, T.connection.testStep, (signal) => this.#hub.move(1, signal)),
       el('p', { class: 'hint', text: T.connection.fitIntro }),
@@ -302,6 +305,12 @@ export class Connection {
     }
     const checked = degrees === null ? T.connection.turnsUnchecked : T.connection.turnsChecked(Math.round(degrees));
     report(`${T.connection.turnsDone(this.#tuning.quarterTurnMs, this.#tuning.scanStepMs)} ${checked}`);
+  }
+
+  /** Puts every slider back to the value measured on a real mBot; the two switches for the motors stay as they are. */
+  #resetTuning() {
+    for (const key of Object.keys(this.#sliders)) this.#set(key, DEFAULT_TUNING[key]);
+    show(this.#resetReport, T.connection.resetDone);
   }
 
   /** Sets a tuning value from outside the dialog, to the nearest it may take, and returns what it became. */

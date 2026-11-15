@@ -7,7 +7,7 @@ import { RobotHub } from '../js/robot/hub.js';
 import { MBot } from '../js/robot/mbot.js';
 import { wheelsPacket } from '../js/robot/protocol.js';
 import { Mishap, Simulator } from '../js/robot/simulator.js';
-import { correctedStepTime, DEFAULT_TUNING, squareOf } from '../js/robot/tuning.js';
+import { correctedStepTime, DEFAULT_TUNING, driveTime, squareOf } from '../js/robot/tuning.js';
 import { Tutorial } from '../js/tutorial.js';
 import { MapsView } from '../js/ui/maps-view.js';
 import { ProgramView } from '../js/ui/program-view.js';
@@ -153,6 +153,9 @@ test('maps: «Ao início» puts every thing back', async () => {
 test('maps: on a map a step is one of its squares, and takes the time the mat\'s step would take for that far', () => {
   equal(squareOf({ stepMs: 1260, cellCm: 20 }), { cm: 20, ms: 1260 });
   equal(squareOf({ stepMs: 1260, cellCm: 20, mapCm: 15 }), { cm: 15, ms: 950 });
+  // Three squares in one go lose the time to get going only once.
+  equal(driveTime({ stepMs: 1260, cellCm: 20, mapCm: 15 }, 3), 20 + 3 * 930);
+  equal(driveTime({ stepMs: 1260, cellCm: 20 }, 1), 1260);
   // A robot that went 5.7 squares when asked for 3 gets a step that much shorter.
   equal(Math.round(correctedStepTime(1260, 3, 5.7)), 673);
 });
@@ -239,3 +242,31 @@ test('maps: the step is put right from how many squares the robot went, and the 
   button('Andar 3 quadrados').click();
   ok(view.querySelector('.map-tuner [aria-live]').textContent.includes('Ligue primeiro'), 'with no robot connected, it says so');
 });
+
+test('maps: the sensors under the robot are shown light or dark, and their changes counted', async () => {
+  const { tuning, simulator, board } = programTab();
+  const hub = new RobotHub(simulator, tuning);
+  const view = new MapsView({ board, hub, tuning, tune() {}, onPlay() {} });
+  const watch = [...view.element.querySelectorAll('.map-tuner button')].find((button) => button.textContent.includes('Ver o que o sensor vê'));
+  const eyes = () => [...view.element.querySelectorAll('.floor-eye')].map((eye) => eye.classList.contains('is-dark'));
+  const said = () => view.element.querySelector('.floor-eyes').parentElement.nextElementSibling.textContent;
+  watch.click();
+  ok(said().includes('Ligue primeiro'), 'with no robot connected, it says so');
+  // A robot pushed from the floor of the map over a line and off it again: neither sensor, the left one, both, neither.
+  const readings = [3, 3, 1, 0, 3];
+  hub.attach({ focus() {}, readLine: async () => readings.shift() ?? 3, stop: async () => {} });
+  watch.click();
+  const looks = [];
+  for (let i = 0; i < 40 && readings.length > 0; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    looks.push(eyes().join());
+  }
+  ok(looks.includes('true,false') && looks.includes('true,true'), `the squares showed ${[...new Set(looks)].join(' | ')}`);
+  equal(eyes(), [false, false]);
+  ok(said().includes('mudou 3 vezes'), said());
+  ok(watch.textContent.includes('Parar de ver'));
+  view.stop();
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  ok(watch.textContent.includes('Ver o que o sensor vê'), 'the watching did not stop');
+});
+

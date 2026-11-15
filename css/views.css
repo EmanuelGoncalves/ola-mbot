@@ -704,3 +704,20 @@
   font-weight: 700;
 }
 
+/* The two sensors under the robot: a light or a dark square each */
+.floor-eyes {
+  display: flex;
+  gap: 6px;
+}
+
+.floor-eye {
+  width: var(--touch);
+  height: var(--touch);
+  border: 3px solid var(--ink-soft);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+}
+
+.floor-eye.is-dark {
+  background: var(--ink);
+}

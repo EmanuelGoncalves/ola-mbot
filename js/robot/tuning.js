@@ -41,6 +41,13 @@ export function squareOf({ stepMs, cellCm, mapCm }) {
   return { cm: mapCm, ms: Math.min(stepMs, STEP_LOST_MS) + (Math.max(0, stepMs - STEP_LOST_MS) * mapCm) / cellCm };
 }
 
+/** How long the wheels run to cross `squares` of the current square in one go: the time lost getting going counts once, however far. */
+export function driveTime(tuning, squares) {
+  const { ms } = squareOf(tuning);
+  const lost = Math.min(ms, STEP_LOST_MS);
+  return squares > 0 ? lost + squares * (ms - lost) : 0;
+}
+
 /** The step time that makes the robot go `wanted` squares, when a move meant to go that far went `went`. */
 export function correctedStepTime(stepMs, wanted, went) {
   return STEP_LOST_MS + ((stepMs - STEP_LOST_MS) * wanted) / went;

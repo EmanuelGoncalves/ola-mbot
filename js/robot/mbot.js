@@ -1,6 +1,6 @@
 import { sleep } from '../timing.js';
 import { buttonRequest, distanceRequest, lightRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, versionRequest, wheelsPacket } from './protocol.js';
-import { squareOf } from './tuning.js';
+import { driveTime, squareOf } from './tuning.js';
 
 const REPLY_TIMEOUT_MS = 400;
 /** Each question carries a number, so answers are not mixed up when two are waiting. */
@@ -84,7 +84,7 @@ export class MBot {
     const square = squareOf(this.#tuning);
     const cm = Math.abs(steps) * square.cm;
     const extra = cm > 0 ? (((bend * Math.PI) / 180) * WHEEL_GAP_CM) / (2 * cm) : 0;
-    return this.#driveFor(speed * (1 + extra), speed * (1 - extra), Math.abs(steps) * square.ms, signal);
+    return this.#driveFor(speed * (1 + extra), speed * (1 - extra), driveTime(this.#tuning, Math.abs(steps)), signal);
   }
 
   /** Positive quarter turns go right, negative go left. */
