@@ -86,7 +86,7 @@ test('explorer: the real mBot is driven in its own steps, turns and radar spins'
   const mbot = {
     readDistance: async () => 25,
     move: async (steps, signal, bend) => calls.push(['move', steps, bend]),
-    turn: async (quarters) => calls.push(['turn', quarters]),
+    spin: async (quarters) => calls.push(['spin', quarters]),
     rotate: async (direction, ms) => calls.push(['rotate', direction, ms]),
   };
   const body = realBody(mbot, { cellCm: 20, scanStepMs: 1, scanStops: 18 });
@@ -95,7 +95,7 @@ test('explorer: the real mBot is driven in its own steps, turns and radar spins'
   await body.forward(30, undefined, 8);
   await body.quarter(-1);
   await body.spin(1);
-  equal(calls, [['move', 1.5, 8], ['turn', -1], ['rotate', 1, 1]]);
+  equal(calls, [['move', 1.5, 8], ['spin', -1], ['rotate', 1, 1]], 'a quarter turn of the explorer is around the axle:');
   mbot.readDistance = async () => 400;
   equal(await body.range(), null, 'nothing in sight:');
 });

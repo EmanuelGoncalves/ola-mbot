@@ -1,6 +1,6 @@
 import { sleep } from '../timing.js';
 import { buttonRequest, distanceRequest, lightRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, versionRequest, wheelsPacket } from './protocol.js';
-import { driveTime, squareOf } from './tuning.js';
+import { driveTime, squareOf, turnTime } from './tuning.js';
 
 const REPLY_TIMEOUT_MS = 400;
 /** Each question carries a number, so answers are not mixed up when two are waiting. */
@@ -38,6 +38,8 @@ const RESET_TIMES = 3;
 const RESET_GAP_MS = 120;
 /** While a job has the robot's full attention, its lights change no more often than this. */
 const ATTENTIVE_LIGHTS_EVERY_MS = 500;
+/** Between the short drive that puts the axle in place and the turn, the robot rests this long. */
+const PIVOT_REST_MS = 100;
 /** A waiting note goes this much later than the other waiting packets, which it would otherwise keep waiting. */
 const NOTE_GOES_LAST_MS = 20;
 
@@ -87,9 +89,29 @@ export class MBot {
     return this.#driveFor(speed * (1 + extra), speed * (1 - extra), driveTime(this.#tuning, Math.abs(steps)), signal);
   }
 
-  /** Positive quarter turns go right, negative go left. */
-  turn(quarters, signal) {
-    return this.rotate(quarters, Math.abs(quarters) * this.#tuning.quarterTurnMs, signal);
+  /**
+   * Positive quarter turns go right, negative go left. The mBot turns around the middle of its
+   * wheel axle, which sits `pivotCm` behind the middle of its body: a turn on the spot would
+   * swing the body off its square. So the robot first drives forward until the axle is where
+   * the middle of its body was, turns, and drives back by as much.
+   */
+  async turn(quarters, signal) {
+    const { cm } = squareOf(this.#tuning);
+    const ahead = cm > 0 ? (this.#tuning.pivotCm ?? 0) / cm : 0;
+    if (ahead > 0) {
+      await this.move(ahead, signal);
+      await sleep(PIVOT_REST_MS, signal);
+    }
+    await this.spin(quarters, signal);
+    if (ahead > 0) {
+      await sleep(PIVOT_REST_MS, signal);
+      await this.move(-ahead, signal);
+    }
+  }
+
+  /** Quarter turns around the wheel axle, without minding where the body ends. */
+  spin(quarters, signal) {
+    return this.rotate(quarters, turnTime(this.#tuning, Math.abs(quarters)), signal);
   }
 
   /** Spins on the spot during `ms`, clockwise when `degrees` is positive. The mBot cannot measure the angle. */

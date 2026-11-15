@@ -1,8 +1,8 @@
 import { MBot, noteLength } from '../js/robot/mbot.js';
 import { RobotHub } from '../js/robot/hub.js';
 import { lightsPacket, resetPacket, tonePacket, wheelsPacket } from '../js/robot/protocol.js';
-import { DEFAULT_TUNING } from '../js/robot/tuning.js';
-import { equal, test } from './harness.js';
+import { DEFAULT_TUNING, driveTime, turnTime } from '../js/robot/tuning.js';
+import { equal, ok, test } from './harness.js';
 
 /** A link that only writes down the packets it is asked to send. */
 function fakeLink() {
@@ -204,3 +204,61 @@ test('mbot: the robot is deaf from when the packet really went, not from when it
   await driving;
   equal(link.sent.length, 2);
 });
+
+/** A link that writes down each packet with the time it was sent. */
+function timedLink() {
+  const link = new EventTarget();
+  link.sent = [];
+  link.send = async (bytes) => link.sent.push({ packet: [...bytes], at: performance.now() });
+  return link;
+}
+
+test('mbot: a turn first puts the wheel axle where the middle of the body was, and afterwards drives back by as much', async () => {
+  const tuning = { ...DEFAULT_TUNING, stepMs: 520, cellCm: 20, quarterTurnMs: 60, pivotCm: 4 };
+  const link = timedLink();
+  await new MBot(link, tuning).turn(2);
+  const stop = [...wheelsPacket(0, 0)];
+  equal(
+    link.sent.map((item) => item.packet),
+    [[...wheelsPacket(150, 150)], stop, [...wheelsPacket(150, -150)], stop, [...wheelsPacket(-150, -150)], stop],
+  );
+  const lasted = (i) => link.sent[i + 1].at - link.sent[i].at;
+  // 4 cm of a 20 cm step: a fifth of the time the wheels really turn, plus the time lost getting going.
+  const [ahead, around, back] = [driveTime(tuning, 0.2), turnTime(tuning, 2), driveTime(tuning, 0.2)];
+  equal([Math.round(ahead), Math.round(around)], [120, 94]);
+  for (const [i, wanted, what] of [[0, ahead, 'the drive ahead'], [2, around, 'the half turn'], [4, back, 'the drive back']]) {
+    ok(lasted(i) >= wanted - 5 && lasted(i) < wanted + 45, `${what} lasted ${Math.round(lasted(i))} ms instead of ${Math.round(wanted)}`);
+  }
+});
+
+test('mbot: with the axle in the middle of the body, a turn is only a turn', async () => {
+  const { link, mbot } = robot({ quarterTurnMs: 20, pivotCm: 0 });
+  await mbot.turn(-1);
+  equal(link.sent, [[...wheelsPacket(-150, 150)], [...wheelsPacket(0, 0)]]);
+});
+
+test('mbot: on a printed map the drive ahead of a turn is the same distance, in smaller squares', () => {
+  const tuning = { ...DEFAULT_TUNING, stepMs: 520, cellCm: 20, mapCm: 15 };
+  // 4 cm is 4/15 of a map square, which takes as long as a fifth of a mat square.
+  ok(Math.abs(driveTime(tuning, 4 / 15) - driveTime({ ...tuning, mapCm: undefined }, 4 / 20)) < 0.001);
+});
+
+test('mbot: the drive ahead and back keeps the middle of the body in place, whatever the turn', () => {
+  const offset = 4; // the axle is this far behind the middle of the body
+  const facing = (degrees) => [Math.sin((degrees * Math.PI) / 180), -Math.cos((degrees * Math.PI) / 180)];
+  /** Where the middle of the body ends, starting at (0, 0) facing up, after a turn made `ahead` cm further on. */
+  const middleAfter = (degrees, ahead) => {
+    const [fx, fy] = facing(0);
+    const axle = [fx * (ahead - offset), fy * (ahead - offset)]; // the robot turns around this point
+    const [tx, ty] = facing(degrees);
+    return [axle[0] + tx * (offset - ahead), axle[1] + ty * (offset - ahead)];
+  };
+  for (const degrees of [90, -90, 180, 45]) {
+    const [x, y] = middleAfter(degrees, offset);
+    ok(Math.hypot(x, y) < 1e-9, `after ${degrees}° the middle is ${Math.hypot(x, y)} cm away`);
+  }
+  // Without it, a half turn leaves the middle of the body twice the offset away: 8 cm, half a map square.
+  equal(Math.round(Math.hypot(...middleAfter(180, 0)) * 10) / 10, 8);
+  equal(Math.round(Math.hypot(...middleAfter(90, 0)) * 10) / 10, 5.7);
+});
+

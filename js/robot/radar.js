@@ -1,4 +1,5 @@
 import { sleep } from '../timing.js';
+import { SPIN_LOST_MS } from './tuning.js';
 
 /** How many times the radar measures at each stop. */
 const READINGS = 7;
@@ -26,11 +27,6 @@ const SURE_REPEATS = 6;
 const FRESH_LOOKS = 8;
 /** Two fits this close are as good as each other. */
 const AS_GOOD = 0.02;
-/**
- * The time a spin loses getting going. On a real mBot, spins of 120, 170 and 250 ms turned 17°,
- * 26° and 41°: a straight line that meets zero at 26 ms.
- */
-const SPIN_LOST_MS = 26;
 /** The wall must be at least this far, in squares, to test a step towards it. */
 const ROOM_FOR_A_STEP = 2;
 /** The step there and the step back are taken to be the same step when they differ by less than this part. */

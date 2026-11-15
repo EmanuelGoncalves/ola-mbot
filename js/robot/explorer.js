@@ -383,7 +383,7 @@ export function realBody(mbot, tuning) {
       await settle(signal);
     },
     async quarter(direction, signal) {
-      await mbot.turn(direction, signal);
+      await mbot.spin(direction, signal); // the explorer reckons from the axle, where the robot turns
       await settle(signal);
     },
     async forward(cm, signal, bend = 0) {

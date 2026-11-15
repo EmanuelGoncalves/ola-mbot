@@ -104,6 +104,14 @@ The times the app starts with were measured this way on a real mBot: 1.26 s for 
 run the two buttons again when the robot stops short or turns too far. The robot
 on screen never plays slower than a brisk robot when no real one is connected.
 
+The mBot turns around the middle of its wheel axle, which sits about 4 cm behind
+the middle of its body (the axle is 4 cm from the back and 11.5 cm from the
+front of the eyes). A turn on the spot would swing the body off its square: half
+a turn leaves it 8 cm away, half a square of a printed map. So for every turn of
+a program the robot first drives forward until the axle is where the middle of
+its body was, turns, and drives back by as much. "Rodas atrás do meio do robô"
+sets that distance; 0 switches it off.
+
 The same section has two switches for a robot that drives or turns the wrong
 way, which happens when the two motors were plugged into each other's sockets.
 

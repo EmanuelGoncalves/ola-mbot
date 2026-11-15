@@ -217,6 +217,8 @@ export class Connection {
       this.#testButton(`📏 ${T.connection.fitStep}`, (signal) => this.#fitStep(signal)),
       this.#fitReport,
       this.#slider('quarterTurnMs', T.connection.turnTime, T.connection.milliseconds, T.connection.testTurn, (signal) => this.#hub.turn(1, signal)),
+      el('p', { class: 'hint', text: T.connection.pivotIntro }),
+      this.#slider('pivotCm', T.connection.pivot, T.connection.centimetres, T.connection.testHalfTurn, (signal) => this.#hub.turn(2, signal)),
       el('p', { class: 'hint', text: T.connection.scanIntro }),
       this.#slider('scanStepMs', T.connection.scanTime, T.connection.milliseconds),
       this.#slider('scanStops', T.connection.scanStops, String, T.connection.testScan, (signal) =>
