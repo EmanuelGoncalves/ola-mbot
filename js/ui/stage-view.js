@@ -1,5 +1,4 @@
 import { svg } from '../dom.js';
-import { WORLD } from '../robot/simulator.js';
 import { T } from '../texts.js';
 import { createRobotFigure } from './robot-figure.js';
 
@@ -16,13 +15,21 @@ const LETTER_WIDTH = 0.6;
 
 const centre = (cell) => (cell + 0.5) * CELL;
 
-/** Draws the mat, the signs, the boxes, the star, what the radar saw, the trail and the robot for a simulator. */
+/** What floats up from the robot when it takes, leaves or cannot take a thing. */
+const THING_POPUPS = { took: '🤲', left: '📦', heavy: '🏋️', nothing: '❓', empty: '❓' };
+
+/** Draws the mat or a printed map, with its signs, boxes, star and things, what the radar saw, the trail and the robot. */
 export class StageView {
   /** When true, tapping a cell adds or removes a box. */
   editable = true;
 
   #simulator;
   #label;
+  #mat = svg('rect', { class: 'stage-mat', rx: 28 });
+  #grid = svg('path', { class: 'stage-grid' });
+  #startMark = svg('g');
+  #things = svg('g');
+  #held = svg('g');
   #signs = svg('g');
   #boxes = svg('g');
   #sightings = svg('g');
@@ -35,24 +42,29 @@ export class StageView {
   constructor(simulator, label) {
     this.#simulator = simulator;
     this.#label = label;
-    const { cols, rows } = WORLD;
     this.element = svg(
       'svg',
-      { class: 'stage', viewBox: `0 0 ${cols * CELL} ${rows * CELL}`, role: 'img', 'aria-label': label },
-      svg('rect', { class: 'stage-mat', width: cols * CELL, height: rows * CELL, rx: 28 }),
-      this.#gridLines(),
+      { class: 'stage', role: 'img', 'aria-label': label },
+      this.#mat,
+      this.#grid,
+      this.#startMark,
       this.#circuit,
+      this.#things,
       this.#signs,
       this.#star,
       this.#boxes,
       this.#sightings,
       this.#trail,
       this.#robot.group,
+      this.#held,
       this.#popups,
     );
     this.element.addEventListener('click', (event) => this.#onTap(event));
     simulator.addEventListener('change', () => this.#drawRobot());
     simulator.addEventListener('world', () => this.#drawWorld());
+    simulator.addEventListener('things', () => this.#drawThings());
+    simulator.addEventListener('thing', (event) => this.#popup(THING_POPUPS[event.detail.what]));
+    simulator.addEventListener('mishap', () => this.#popup('😵'));
     simulator.addEventListener('sightings', () => this.#drawSightings());
     simulator.addEventListener('bump', () => this.#popup('💥'));
     simulator.addEventListener('note', () => this.#popup('🎵'));
@@ -60,22 +72,52 @@ export class StageView {
     this.#drawRobot();
   }
 
-  #gridLines() {
-    const { cols, rows } = WORLD;
+  /** The mat is as large as its world, and a printed map has its own colours and a mark on its starting square. */
+  #drawMat() {
+    const { cols, rows, start, map } = this.#simulator.world;
+    this.element.setAttribute('viewBox', `0 0 ${cols * CELL} ${rows * CELL}`);
+    this.element.dataset.map = map ?? '';
+    this.#mat.setAttribute('width', cols * CELL);
+    this.#mat.setAttribute('height', rows * CELL);
     const lines = [];
     for (let x = 1; x < cols; x++) lines.push(`M${x * CELL},12 V${rows * CELL - 12}`);
     for (let y = 1; y < rows; y++) lines.push(`M12,${y * CELL} H${cols * CELL - 12}`);
-    return svg('path', { class: 'stage-grid', d: lines.join(' ') });
+    this.#grid.setAttribute('d', lines.join(' '));
+    this.#startMark.replaceChildren(
+      ...(map
+        ? [
+            svg('rect', { class: 'stage-start', x: start.x * CELL + 8, y: start.y * CELL + 8, width: 84, height: 84, rx: 18 }),
+            svg('text', { class: 'stage-start-text', x: centre(start.x), y: start.y * CELL + 86, text: T.maps.start }),
+          ]
+        : []),
+    );
+  }
+
+  /** The things of a printed map that lie on its squares; what the robot carries is drawn with the robot. */
+  #drawThings() {
+    this.#things.replaceChildren(
+      ...this.#simulator.things
+        .filter((thing) => !thing.held)
+        .flatMap(({ x, y, icon, name, hazard }) => [
+          hazard && svg('rect', { class: 'stage-hazard', x: x * CELL + 4, y: y * CELL + 4, width: 92, height: 92, rx: 16 }),
+          svg('text', { class: 'stage-thing', x: centre(x), y: y * CELL + 44, text: icon }),
+          svg('text', { class: 'stage-thing-name', x: centre(x), y: y * CELL + 86, text: name }),
+        ])
+        .filter(Boolean),
+    );
+    this.#drawRobot();
   }
 
   #drawWorld() {
+    this.#drawMat();
+    this.#drawThings();
     const { boxes, goal, signs } = this.#simulator;
     // The signs hold the possible answers, so they are read out with the picture's name.
     const words = signs.length > 0 ? ` ${T.program.signs(signs.map((sign) => sign.text))}` : '';
     this.element.setAttribute('aria-label', `${this.#label}.${words}`);
     this.#signs.replaceChildren(
       ...signs.flatMap(({ x, y, text }) => {
-        const { size, width, left } = signPlate(x, text);
+        const { size, width, left } = signPlate(x, text, this.#simulator.world.cols);
         return [
           svg('rect', { class: 'stage-sign', x: left, y: y * CELL + 8, width, height: 84, rx: 16 }),
           svg('text', { class: 'stage-sign-text', x: left + width / 2, y: y * CELL + 52, 'font-size': size, text }),
@@ -117,6 +159,14 @@ export class StageView {
     this.#trail.setAttribute('points', points.join(' '));
     this.#robot.group.setAttribute('transform', `translate(${centre(pose.x)} ${centre(pose.y)}) rotate(${pose.heading})`);
     this.#robot.setLights(lights);
+    // What the robot carries rides beside it in a bubble each, upright whichever way the robot faces.
+    this.#held.setAttribute('transform', `translate(${centre(pose.x) + 30} ${centre(pose.y) - 30})`);
+    this.#held.replaceChildren(
+      ...this.#simulator.holding.flatMap((thing, i) => [
+        svg('circle', { class: 'stage-held-bubble', cx: i * 30, cy: 0, r: 19 }),
+        svg('text', { class: 'stage-held', x: i * 30, y: 1, text: thing.icon }),
+      ]),
+    );
   }
 
   /** Shows a symbol floating up from the robot for a moment. */
@@ -130,17 +180,18 @@ export class StageView {
   #onTap(event) {
     if (!this.editable) return;
     const box = this.element.getBoundingClientRect();
-    const x = Math.floor(((event.clientX - box.left) / box.width) * WORLD.cols);
-    const y = Math.floor(((event.clientY - box.top) / box.height) * WORLD.rows);
+    const { cols, rows } = this.#simulator.world;
+    const x = Math.floor(((event.clientX - box.left) / box.width) * cols);
+    const y = Math.floor(((event.clientY - box.top) / box.height) * rows);
     this.#simulator.toggleObstacle(x, y);
   }
 }
 
 /** A sign is as wide as its text needs: a long word spills a little over the squares beside it, never off the mat. */
-function signPlate(x, text) {
+function signPlate(x, text, cols) {
   const letters = [...text].length;
   const size = SIGN_SIZES.find(([upTo]) => letters <= upTo)[1];
   const width = Math.max(SIGN_MIN_WIDTH, letters * size * LETTER_WIDTH + SIGN_PADDING);
-  const left = Math.max(4, Math.min(WORLD.cols * CELL - width - 4, centre(x) - width / 2));
+  const left = Math.max(4, Math.min(cols * CELL - width - 4, centre(x) - width / 2));
   return { size, width, left };
 }

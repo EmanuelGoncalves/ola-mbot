@@ -7,6 +7,7 @@ import { exercisesOf, SUBJECTS, YEARS } from '../js/school.js';
 import { Tutorial } from '../js/tutorial.js';
 import { DriveView } from '../js/ui/drive-view.js';
 import { LearnView } from '../js/ui/learn-view.js';
+import { MapsView } from '../js/ui/maps-view.js';
 import { MissionsView } from '../js/ui/missions-view.js';
 import { ParentsView } from '../js/ui/parents-view.js';
 import { ProgramView } from '../js/ui/program-view.js';
@@ -37,6 +38,7 @@ test('ui: every tab builds, with its heading', () => {
     drive: new DriveView({ hub, simulator, tuning, onFreePlay: nothing }),
     missions: new MissionsView({ board, onPlay: nothing }),
     school: new SchoolView({ board, onPlay: nothing }),
+    maps: new MapsView({ board, hub, tuning, tune: nothing, onPlay: nothing }),
     remote: new RemoteView(),
     parents: new ParentsView({ hub, tuning, link: new BluetoothLink({ bluetooth: null }) }),
   };
@@ -104,7 +106,7 @@ test('ui: the Pais tab reads the robot and answers the command line', async () =
 
 const SOURCES = [
   'main.js',
-  ...['celebrate', 'coach', 'connection', 'drive-view', 'explore-view', 'layout', 'learn-view', 'missions-view', 'parents-view', 'program-editor'].map((name) => `ui/${name}.js`),
+  ...['celebrate', 'coach', 'connection', 'drive-view', 'explore-view', 'layout', 'learn-view', 'maps-view', 'missions-view', 'parents-view', 'program-editor'].map((name) => `ui/${name}.js`),
   ...['program-view', 'remote-view', 'robot-figure', 'round-dots', 'school-view', 'show-editor', 'stage-view'].map((name) => `ui/${name}.js`),
 ];
 

@@ -148,3 +148,65 @@
     animation-duration: 0.01s;
   }
 }
+
+/* A printed map: its own floor, a mark on the starting square, and the things on its squares */
+.stage[data-map="house"] {
+  --mat: var(--map-house);
+  --mat-line: var(--map-house-line);
+}
+
+.stage[data-map="kingdom"] {
+  --mat: var(--map-kingdom);
+  --mat-line: var(--map-kingdom-line);
+}
+
+.stage[data-map]:not([data-map=""]) .stage-grid {
+  stroke-dasharray: none;
+  stroke-width: 2;
+}
+
+.stage-start {
+  fill: var(--surface);
+  stroke: var(--brand);
+  stroke-width: 4;
+  opacity: 0.75;
+}
+
+.stage-start-text,
+.stage-thing-name {
+  fill: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 15px;
+  text-anchor: middle;
+}
+
+.stage-start-text {
+  fill: var(--brand);
+  font-size: 13px;
+}
+
+.stage-thing {
+  font-size: 46px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.stage-hazard {
+  fill: var(--map-hazard);
+  stroke: var(--stop);
+  stroke-width: 3;
+  stroke-dasharray: 8 8;
+}
+
+.stage-held-bubble {
+  fill: var(--surface);
+  stroke: var(--cat-things);
+  stroke-width: 3;
+}
+
+.stage-held {
+  font-size: 24px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}

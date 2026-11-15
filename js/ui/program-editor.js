@@ -19,7 +19,7 @@ export function createPalette(onPick) {
     CATEGORIES.map((category) =>
       el(
         'section',
-        { class: 'palette-group' },
+        { class: 'palette-group', 'data-family': category.id },
         el('h3', { class: 'palette-heading', text: category.name }),
         Object.keys(BLOCKS)
           .filter((type) => BLOCKS[type].category === category.id)

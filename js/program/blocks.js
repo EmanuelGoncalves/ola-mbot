@@ -8,7 +8,11 @@ export const CATEGORIES = [
   { id: 'sound', name: 'Sons' },
   { id: 'control', name: 'Controlo' },
   { id: 'sense', name: 'Olhos do robô' },
+  { id: 'things', name: 'Coisas do mapa' },
 ];
+
+/** The families of blocks that only make sense on a printed map. */
+export const MAP_CATEGORIES = ['things'];
 
 const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
 const numbers = (values, label) => values.map((value) => ({ value, label: label(value) }));
@@ -109,6 +113,16 @@ export const BLOCKS = {
     icon: '👀',
     label: 'Se vir um obstáculo',
     container: true,
+  },
+  pick: {
+    category: 'things',
+    icon: '🤲',
+    label: 'Apanhar',
+  },
+  drop: {
+    category: 'things',
+    icon: '📦',
+    label: 'Largar',
   },
 };
 

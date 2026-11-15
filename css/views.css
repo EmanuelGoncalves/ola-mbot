@@ -294,6 +294,7 @@
 .learn-view,
 .missions-view,
 .school-view,
+.maps-view,
 .parents-view,
 .remote-view {
   display: grid;
@@ -635,3 +636,71 @@
     transform: none;
   }
 }
+
+/* Mapas: the chosen map square by square, then a row of cards per level */
+.map-board {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.map-preview {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  max-width: 540px;
+  padding: 6px;
+  border-radius: var(--radius-small);
+  background: var(--map-house-line);
+}
+
+.map-preview[data-map="kingdom"] {
+  background: var(--map-kingdom-line);
+}
+
+.map-square {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--map-house);
+}
+
+.map-preview[data-map="kingdom"] .map-square {
+  background: var(--map-kingdom);
+}
+
+.map-square.is-hazard {
+  outline: 2px dashed var(--stop);
+  outline-offset: -4px;
+}
+
+.map-square.is-start {
+  outline: 3px solid var(--brand);
+  outline-offset: -4px;
+  background: var(--surface);
+}
+
+.map-square-icon {
+  font-size: clamp(1.1rem, 4.5vw, 1.9rem);
+  line-height: 1;
+}
+
+.map-square-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(0.5rem, 1.6vw, 0.72rem);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-tuner > p:not(.hint) {
+  font-weight: 700;
+}
+

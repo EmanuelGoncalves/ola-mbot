@@ -1,4 +1,4 @@
-/* Layout: a top bar with seven tabs; each tab is a grid of soft panels around the robot's mat. */
+/* Layout: a top bar with eight tabs; each tab is a grid of soft panels around the robot's mat. */
 :root {
   --bg: #e6f3f9;
   --surface: #ffffff;
@@ -25,6 +25,11 @@
   --circuit: #1d2b33;
   --box: #dba76b;
   --box-edge: #b07a3f;
+  --map-house: #dfe3e6;
+  --map-house-line: #ffffff;
+  --map-kingdom: #d9eec8;
+  --map-kingdom-line: #f6fcec;
+  --map-hazard: rgb(217 83 79 / 0.16);
   --trail: #f2853d;
   --star: #ffc93c;
   --star-edge: #d99a00;
@@ -55,6 +60,8 @@
   --cat-control-ink: #3d1f00;
   --cat-sense: #4cc792;
   --cat-sense-ink: #06281a;
+  --cat-things: #e2607f;
+  --cat-things-ink: #ffffff;
 
   --font-display: "Baloo 2", ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
   --font-body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -88,6 +95,11 @@
     --circuit: #05090b;
     --box: #c08a52;
     --box-edge: #8c5e2c;
+    --map-house: #36424a;
+    --map-house-line: #53626c;
+    --map-kingdom: #2a4630;
+    --map-kingdom-line: #446a4a;
+    --map-hazard: rgb(240 132 129 / 0.22);
     --robot-led-off: #35566a;
     --remote-body: #0b161d;
     --backdrop: rgb(0 0 0 / 0.65);
@@ -117,6 +129,11 @@
   --circuit: #05090b;
   --box: #c08a52;
   --box-edge: #8c5e2c;
+  --map-house: #36424a;
+  --map-house-line: #53626c;
+  --map-kingdom: #2a4630;
+  --map-kingdom-line: #446a4a;
+  --map-hazard: rgb(240 132 129 / 0.22);
   --robot-led-off: #35566a;
   --remote-body: #0b161d;
   --backdrop: rgb(0 0 0 / 0.65);

@@ -11,6 +11,7 @@ import { Tutorial } from './tutorial.js';
 import { Connection } from './ui/connection.js';
 import { DriveView } from './ui/drive-view.js';
 import { LearnView } from './ui/learn-view.js';
+import { MapsView } from './ui/maps-view.js';
 import { MissionsView } from './ui/missions-view.js';
 import { ParentsView } from './ui/parents-view.js';
 import { ProgramView } from './ui/program-view.js';
@@ -27,6 +28,7 @@ const TABS = [
   { id: 'programar', icon: '🧩', label: T.tabs.program },
   { id: 'conduzir', icon: '🕹️', label: T.tabs.drive },
   { id: 'missoes', icon: '⭐', label: T.tabs.missions },
+  { id: 'mapas', icon: '🗺️', label: T.tabs.maps },
   { id: 'escola', icon: '🎒', label: T.tabs.school },
   { id: 'comando', icon: '📡', label: T.tabs.remote },
   { id: 'pais', icon: '🛠️', label: T.tabs.parents },
@@ -44,8 +46,8 @@ function start() {
   const tutorial = new Tutorial();
 
   const showMissions = () => showTab('missoes');
-  /** Goes back to the list a mission or a school exercise came from. */
-  const showMore = (mission) => showTab(mission.subject ? 'escola' : 'missoes');
+  /** Goes back to the list a mission, a map or a school exercise came from. */
+  const showMore = (mission) => showTab(mission.subject ? 'escola' : mission.map ? 'mapas' : 'missoes');
   const freePlay = () => {
     board.leave();
     tutorial.leave();
@@ -57,16 +59,21 @@ function start() {
     programar: programView.element,
     conduzir: driveView.element,
     missoes: new MissionsView({ board, onPlay: playMission }).element,
+    mapas: null, // made below: it tunes the robot through the connection
     escola: new SchoolView({ board, onPlay: playMission }).element,
     comando: new RemoteView().element,
     pais: null, // made below, once there is a connection to show
   };
 
+  let mapsView = null;
   const stopRobot = () => {
     programView.stop();
     driveView.stop();
+    mapsView?.stop();
   };
   const connection = new Connection({ hub, tuning, onOpen: stopRobot });
+  mapsView = new MapsView({ board, hub, tuning, tune: (key, value) => connection.tune(key, value), onPlay: playMission });
+  views.mapas = mapsView.element;
   views.pais = new ParentsView({ hub, tuning, link: connection.link }).element;
   /** The way out when the robot is doing too much at once: ends every activity and starts the robot afresh. */
   const stopAll = () => {

@@ -1,5 +1,12 @@
-import { isAbort } from '../timing.js';
+import { isAbort, sleep } from '../timing.js';
 import { EYES_AHEAD_CM, OUT_OF_SIGHT_CM } from './mbot.js';
+import { colorById } from './palette.js';
+import { squareOf } from './tuning.js';
+
+/** The lights blink for this long when the robot picks something up or puts it down… */
+const BLINK_MS = 350;
+/** …in these colours: it took something, it left something, there was nothing to take or leave. */
+const BLINKS = { took: 'green', left: 'blue', nothing: 'red' };
 
 /**
  * One robot for the rest of the app: every command goes to the robot on screen
@@ -74,6 +81,33 @@ export class RobotHub {
     return this.#real((robot) => robot.rotate(direction, ms, signal));
   }
 
+  /**
+   * Picks up what lies on the robot's square of a printed map, and resolves with it or with
+   * null. The real robot has no hand: its lights blink, as do the ones on screen. This is the
+   * one place to ask a sensor, one day, whether the real robot was really given the thing.
+   */
+  async pick(signal) {
+    const thing = this.#simulator.pick();
+    await this.#blink(thing ? BLINKS.took : BLINKS.nothing, signal);
+    return thing;
+  }
+
+  /** Puts down, on the robot's square, everything it carries; resolves with those things. */
+  async drop(signal) {
+    const things = this.#simulator.drop();
+    await this.#blink(things.length > 0 ? BLINKS.left : BLINKS.nothing, signal);
+    return things;
+  }
+
+  async #blink(color, signal) {
+    await this.setLights(colorById(color));
+    try {
+      await sleep(BLINK_MS, signal);
+    } finally {
+      await this.setLights(null);
+    }
+  }
+
   moveUntilObstacle(signal) {
     return this.#both((robot) => robot.moveUntilObstacle(signal));
   }
@@ -117,7 +151,7 @@ export class RobotHub {
   async range() {
     if (!this.#mbot) return this.#simulator.rangeAhead();
     const cm = await this.#mbot.readDistance().catch(() => null);
-    return cm > 0 && cm < OUT_OF_SIGHT_CM ? (cm + EYES_AHEAD_CM) / this.#tuning.cellCm : null;
+    return cm > 0 && cm < OUT_OF_SIGHT_CM ? (cm + EYES_AHEAD_CM) / squareOf(this.#tuning).cm : null;
   }
 
   /**

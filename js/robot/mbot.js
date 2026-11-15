@@ -1,5 +1,6 @@
 import { sleep } from '../timing.js';
 import { buttonRequest, distanceRequest, lightRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, versionRequest, wheelsPacket } from './protocol.js';
+import { squareOf } from './tuning.js';
 
 const REPLY_TIMEOUT_MS = 400;
 /** Each question carries a number, so answers are not mixed up when two are waiting. */
@@ -80,9 +81,10 @@ export class MBot {
    */
   move(steps, signal, bend = 0) {
     const speed = Math.sign(steps) * this.#tuning.speed;
-    const cm = Math.abs(steps) * this.#tuning.cellCm;
+    const square = squareOf(this.#tuning);
+    const cm = Math.abs(steps) * square.cm;
     const extra = cm > 0 ? (((bend * Math.PI) / 180) * WHEEL_GAP_CM) / (2 * cm) : 0;
-    return this.#driveFor(speed * (1 + extra), speed * (1 - extra), Math.abs(steps) * this.#tuning.stepMs, signal);
+    return this.#driveFor(speed * (1 + extra), speed * (1 - extra), Math.abs(steps) * square.ms, signal);
   }
 
   /** Positive quarter turns go right, negative go left. */
@@ -155,7 +157,7 @@ export class MBot {
    */
   async look() {
     const cm = await this.readDistance();
-    return cm === null ? null : { blocked: cm > 0 && cm < this.#tuning.cellCm, cm };
+    return cm === null ? null : { blocked: cm > 0 && cm < squareOf(this.#tuning).cm, cm };
   }
 
   async obstacleAhead() {

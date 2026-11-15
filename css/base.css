@@ -121,7 +121,7 @@ button {
   font-size: 1.35rem;
 }
 
-/* Seven tabs: the icon sits above the name. On a phone they make two rows. */
+/* Eight tabs: the icon sits above the name. On a phone they make two rows of four. */
 @media (max-width: 560px) {
   .tabs {
     flex-wrap: wrap;
@@ -143,7 +143,7 @@ button {
   .tabs {
     flex: 1 1 0;
     order: 0;
-    max-width: 760px;
+    max-width: 860px;
     margin-inline: auto;
   }
 }

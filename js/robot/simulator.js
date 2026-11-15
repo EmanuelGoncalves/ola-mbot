@@ -1,4 +1,5 @@
 import { animate, nextFrame } from '../timing.js';
+import { squareOf } from './tuning.js';
 
 /** The mat: a grid of cells. Heading is in degrees, 0 pointing up, growing clockwise. */
 export const WORLD = Object.freeze({
@@ -6,6 +7,18 @@ export const WORLD = Object.freeze({
   rows: 6,
   start: Object.freeze({ x: 1, y: 4, heading: 0 }),
 });
+
+/**
+ * What ends a run on a printed map: the robot left the map (`thing` is null), or went onto a
+ * square it must keep off, such as a lake (`thing` is what is there).
+ */
+export class Mishap extends Error {
+  constructor(thing = null) {
+    super(thing ? `the robot went onto ${thing.id}` : 'the robot left the map');
+    this.name = 'Mishap';
+    this.thing = thing;
+  }
+}
 
 const ROBOT_RADIUS = 0.34;
 const BUMP_DISTANCE = 0.18;
@@ -26,9 +39,13 @@ const BRISK = { stepMs: 600, quarterTurnMs: 420 };
 
 /**
  * The robot on screen. It follows the same commands as the real mBot.
- * Events: `change` (pose, lights or trail), `world` (boxes, star or signs), `sightings`, `bump`, `note`.
+ * Events: `change` (pose, lights or trail), `world` (size, boxes, star or signs), `things` (what
+ * lies where), `thing` (detail `{ what, thing }`: it took, left or could not take something),
+ * `mishap`, `sightings`, `bump`, `note`.
  */
 export class Simulator extends EventTarget {
+  /** The size of the mat and where the robot starts. A printed map also has its `map` id. */
+  world = WORLD;
   pose = { ...WORLD.start };
   lights = null;
   trail = [];
@@ -40,6 +57,13 @@ export class Simulator extends EventTarget {
   sightings = [];
   /** The circuit drawn on the mat, `{ x, y, radius }` in squares, or null. */
   circuit = null;
+  /**
+   * What lies on a printed map: `[{ id, icon, name, x, y, held }]`. A `fixed` thing cannot be
+   * carried, and a `hazard` is a square to keep off. `home` is where the thing started.
+   */
+  things = [];
+  /** The squares the robot has been on, as "x,y". */
+  visited = new Set();
   bumps = 0;
   stepsMoved = 0;
   notesPlayed = 0;
@@ -51,6 +75,7 @@ export class Simulator extends EventTarget {
   #wheels = { left: 0, right: 0 };
   #driving = false;
   #boxesAside = null;
+  #thingsAtStart = [];
 
   constructor({ tuning, beeper }) {
     super();
@@ -61,16 +86,20 @@ export class Simulator extends EventTarget {
 
   /** The times of a step and of a quarter turn. Alone, the robot on screen is never slower than a brisk real one. */
   get #pace() {
-    const { stepMs, quarterTurnMs } = this.#tuning;
+    const { quarterTurnMs } = this.#tuning;
+    const stepMs = squareOf(this.#tuning).ms;
     return this.alone ? { stepMs: Math.min(stepMs, BRISK.stepMs), quarterTurnMs: Math.min(quarterTurnMs, BRISK.quarterTurnMs) } : { stepMs, quarterTurnMs };
   }
 
   /** Puts the robot back on its starting cell and wipes the trail and what the radar saw. */
   reset() {
     this.showSightings([]);
-    this.pose = { ...WORLD.start };
+    this.pose = { ...this.world.start };
     this.lights = null;
     this.trail = [{ x: this.pose.x, y: this.pose.y }];
+    this.visited = new Set([cellKey(this.pose.x, this.pose.y)]);
+    this.things = this.#thingsAtStart.map((thing) => ({ ...thing, home: { x: thing.x, y: thing.y }, held: false }));
+    this.dispatchEvent(new Event('things'));
     this.bumps = 0;
     this.stepsMoved = 0;
     this.notesPlayed = 0;
@@ -78,8 +107,13 @@ export class Simulator extends EventTarget {
     this.#changed();
   }
 
-  /** Sets the boxes (`[[x, y], …]`), the star (`{x, y}` or null) and the signs (`[[x, y, text], …]`). */
-  setWorld({ obstacles = [], goal = null, signs = [] } = {}) {
+  /**
+   * Sets the boxes (`[[x, y], …]`), the star (`{x, y}` or null) and the signs (`[[x, y, text], …]`).
+   * A printed map also gives its `map` id, its size, its `start` and its `things`.
+   */
+  setWorld({ obstacles = [], goal = null, signs = [], map = null, cols = WORLD.cols, rows = WORLD.rows, start = WORLD.start, things = [] } = {}) {
+    this.world = { cols, rows, start, map };
+    this.#thingsAtStart = things;
     this.obstacles = new Set(obstacles.map(([x, y]) => cellKey(x, y)));
     this.goal = goal;
     this.signs = signs.map(([x, y, text]) => ({ x, y, text }));
@@ -131,7 +165,45 @@ export class Simulator extends EventTarget {
   }
 
   atStart() {
-    return sameCell(this.cell, WORLD.start);
+    return sameCell(this.cell, this.world.start);
+  }
+
+  /** The thing with this id, where it is now. */
+  thing(id) {
+    return this.things.find((thing) => thing.id === id);
+  }
+
+  /** What the robot carries. */
+  get holding() {
+    return this.things.filter((thing) => thing.held);
+  }
+
+  /** What lies on the robot's square to be picked up, or null. A place to keep off is not a thing to pick up. */
+  thingHere() {
+    return this.things.find((thing) => !thing.held && !thing.hazard && sameCell(thing, this.cell)) ?? null;
+  }
+
+  /** Picks up what lies on the robot's square. Returns it, or null when nothing is there or it cannot be carried. */
+  pick() {
+    const thing = this.thingHere();
+    const taken = thing && !thing.fixed;
+    if (taken) thing.held = true;
+    this.#tell(taken ? 'took' : thing ? 'heavy' : 'nothing', thing);
+    return taken ? thing : null;
+  }
+
+  /** Puts down, on the robot's square, everything it carries. Returns those things. */
+  drop() {
+    const held = this.holding;
+    for (const thing of held) Object.assign(thing, { held: false, ...this.cell });
+    for (const thing of held) this.#tell('left', thing);
+    if (held.length === 0) this.#tell('empty', null);
+    return held;
+  }
+
+  #tell(what, thing) {
+    this.dispatchEvent(new Event('things'));
+    this.dispatchEvent(new CustomEvent('thing', { detail: { what, thing } }));
   }
 
   /** The text of the sign the robot is standing on, or null. */
@@ -140,7 +212,11 @@ export class Simulator extends EventTarget {
   }
 
   isBlocked(x, y) {
-    return !inBounds(x, y) || this.obstacles.has(cellKey(x, y));
+    return !this.#onMat(x, y) || this.obstacles.has(cellKey(x, y));
+  }
+
+  #onMat(x, y) {
+    return x >= 0 && y >= 0 && x < this.world.cols && y < this.world.rows;
   }
 
   // --- Robot commands ---
@@ -166,7 +242,7 @@ export class Simulator extends EventTarget {
   }
 
   async moveUntilObstacle(signal) {
-    for (let i = 0; i < WORLD.cols + WORLD.rows && !this.obstacleAhead(); i++) {
+    for (let i = 0; i < this.world.cols + this.world.rows && !this.obstacleAhead(); i++) {
       await this.#step(1, signal);
     }
   }
@@ -233,7 +309,7 @@ export class Simulator extends EventTarget {
 
   /** A box never goes on the start cell, outside the mat or where the robot is standing. */
   #addBox(x, y) {
-    if (!inBounds(x, y) || sameCell({ x, y }, WORLD.start)) return;
+    if (!this.#onMat(x, y) || sameCell({ x, y }, this.world.start)) return;
     const key = cellKey(x, y);
     this.obstacles.add(key);
     if (!this.#fits(this.pose.x, this.pose.y)) this.obstacles.delete(key);
@@ -242,12 +318,23 @@ export class Simulator extends EventTarget {
   async #step(direction, signal) {
     const { x, y } = this.pose;
     const [dx, dy] = this.#forward(direction);
-    if (this.isBlocked(Math.round(x + dx), Math.round(y + dy))) {
+    const to = { x: Math.round(x + dx), y: Math.round(y + dy) };
+    // Nothing holds the real robot at the edge of a printed map: it would drive off it.
+    if (this.world.map && !this.#onMat(to.x, to.y)) throw this.#mishap(null);
+    if (this.isBlocked(to.x, to.y)) {
       await this.#bump(dx, dy, signal);
       return;
     }
     await animate(this.#pace.stepMs, signal, (progress) => this.#place(x + dx * progress, y + dy * progress));
     this.stepsMoved += 1;
+    this.visited.add(cellKey(to.x, to.y));
+    const hazard = this.things.find((thing) => thing.hazard && sameCell(thing, to));
+    if (hazard) throw this.#mishap(hazard);
+  }
+
+  #mishap(thing) {
+    this.dispatchEvent(new CustomEvent('mishap', { detail: { thing } }));
+    return new Mishap(thing);
   }
 
   /** Nudges towards the obstacle and back, so the bump is visible but harmless. */
@@ -320,10 +407,6 @@ export class Simulator extends EventTarget {
 
 function cellKey(x, y) {
   return `${x},${y}`;
-}
-
-function inBounds(x, y) {
-  return x >= 0 && y >= 0 && x < WORLD.cols && y < WORLD.rows;
 }
 
 function sameCell(a, b) {

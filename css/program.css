@@ -240,6 +240,16 @@
   --block-ink: var(--cat-sense-ink);
 }
 
+[data-category="things"] {
+  --block: var(--cat-things);
+  --block-ink: var(--cat-things-ink);
+}
+
+/* The blocks for the things of a printed map only show while a map is open */
+.program-view:not([data-map]) .palette-group[data-family="things"] {
+  display: none;
+}
+
 /* Palette */
 .palette {
   display: flex;
@@ -517,5 +527,33 @@
 
   .block-chip {
     transition: none;
+  }
+}
+
+/* A printed map is wider than the mat: it gets a wider column, and its blocks come first */
+.program-view[data-map] .palette-group[data-family="things"] {
+  order: -1;
+}
+
+/* On a map the eyes would lead the real robot off its squares, to whatever is around the map */
+.program-view[data-map] .palette-group[data-family="sense"] {
+  display: none;
+}
+
+@media (min-width: 700px) {
+  .program-view[data-map] .program-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 56%);
+  }
+}
+
+@media (min-width: 980px) {
+  .program-view[data-map] .program-grid {
+    grid-template-columns: 220px minmax(0, 1fr) minmax(380px, 50%);
+  }
+}
+
+@media (min-width: 700px) and (min-height: 560px) {
+  .program-view[data-map] .stage-panel .stage {
+    width: min(100%, max(300px, (100dvh - var(--around-mat)) * 1.5));
   }
 }

@@ -5,7 +5,7 @@ import { followLine, Line } from '../robot/line-follower.js';
 import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
 import { COLORS, NOTES } from '../robot/palette.js';
 import { distinct, locate, sweep, sweepUntilRepeat } from '../robot/radar.js';
-import { saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
+import { saveTuning, squareOf, TUNING_LIMITS } from '../robot/tuning.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -304,7 +304,7 @@ export class DriveView {
 
   /** Says how big a square of the mat is on the floor. */
   showScale() {
-    this.#scale.textContent = `📏 ${T.program.scale(this.#tuning.cellCm)}`;
+    this.#scale.textContent = `📏 ${T.program.scale(squareOf(this.#tuning).cm)}`;
   }
 
   /**

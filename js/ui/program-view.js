@@ -1,6 +1,9 @@
 import { el } from '../dom.js';
+import { MAP_SQUARE_CM } from '../maps.js';
 import { runProgram } from '../program/interpreter.js';
 import { Program } from '../program/program.js';
+import { Mishap } from '../robot/simulator.js';
+import { squareOf } from '../robot/tuning.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort } from '../timing.js';
@@ -97,6 +100,7 @@ export class ProgramView {
       if (this.#slot === FREE_PLAY) save('boxes', simulator.boxes);
     });
     simulator.addEventListener('bump', () => this.#say(T.program.bump));
+    simulator.addEventListener('thing', ({ detail: { what, thing } }) => this.#say(thing ? T.maps[what](thing.the) : T.maps[what]));
     board.addEventListener('change', () => this.#showActivity(onShowMore));
     tutorial.addEventListener('change', () => this.#showActivity(onShowMore));
     this.showScale();
@@ -104,7 +108,8 @@ export class ProgramView {
 
   /** Says how big a square of the mat is on the floor. */
   showScale() {
-    this.#matHint.textContent = `${T.program.matHint} ${T.program.scale(this.#tuning.cellCm)}`;
+    const { cm } = squareOf(this.#tuning);
+    this.#matHint.textContent = this.#activity?.map ? T.maps.place(cm) : `${T.program.matHint} ${T.program.scale(cm)}`;
   }
 
   get running() {
@@ -130,8 +135,11 @@ export class ProgramView {
       });
       this.#finish();
     } catch (error) {
-      if (!isAbort(error)) throw error;
-      if (slot === this.#slot) this.#say(T.program.stopped); // otherwise something else was opened, with its own message
+      if (error instanceof Mishap) {
+        this.#abort.abort(); // the real robot may still be in the middle of its move
+        this.#say(`${error.thing?.mishap ?? T.maps.offMap} ${T.maps.again}`);
+      } else if (!isAbort(error)) throw error;
+      else if (slot === this.#slot) this.#say(T.program.stopped); // otherwise something else was opened, with its own message
     } finally {
       this.#abort = null;
       this.#editor.highlight(null);
@@ -153,7 +161,7 @@ export class ProgramView {
   #finish() {
     this.#coach.runFinished();
     const mission = this.#board.active;
-    if (!mission) {
+    if (!mission || mission.sandbox) {
       this.#say(`${T.program.done} 🎉`);
     } else if (mission.check(this.#program.all(), this.#simulator)) {
       const starred = this.#board.award(mission);
@@ -203,6 +211,10 @@ export class ProgramView {
     this.#program.replace(Program.revive(saved));
     this.#editor.moveCursorToEnd();
     this.#simulator.setWorld(this.#activity ? this.#activity.world : { obstacles: savedBoxes() });
+    // On a printed map a step is one of its squares, not one of the mat's.
+    if (this.#activity?.map) this.#tuning.mapCm = MAP_SQUARE_CM;
+    else delete this.#tuning.mapCm;
+    this.showScale();
   }
 
   /** Follows the lesson or mission being played. */
@@ -217,8 +229,10 @@ export class ProgramView {
       this.#say(lesson ? T.learn.ready : mission?.subject ? T.school.ready : mission ? mission.goal : T.program.welcome);
     }
     this.element.dataset.mode = lesson ? 'lesson' : mission ? 'mission' : FREE_PLAY;
+    if (this.#activity?.map) this.element.dataset.map = this.#activity.map;
+    else delete this.element.dataset.map;
     this.#stage.editable = !this.running && !this.#activity;
-    this.#matHint.hidden = Boolean(this.#activity);
+    this.#matHint.hidden = Boolean(this.#activity) && !this.#activity.map;
     this.#missionBanner.hidden = !mission || Boolean(lesson);
     if (mission) this.#drawMissionBanner(mission, onShowMore);
   }
@@ -253,9 +267,9 @@ export class ProgramView {
   }
 }
 
-/** A school exercise has its own words for what a mission says. */
+/** A school exercise and a mission on a printed map have their own words for what a mission says. */
 function wordsFor(mission) {
-  return mission.subject ? T.school : T.mission;
+  return mission.subject ? T.school : mission.map ? T.maps : T.mission;
 }
 
 /** The boxes the child left on the free-play mat. */

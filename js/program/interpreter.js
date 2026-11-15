@@ -55,6 +55,18 @@ const EXECUTE = {
     await wait(BEAT_MS, signal);
   },
 
+  /** Picks up what lies on the robot's square of a printed map. */
+  async pick(block, { robot, signal, wait }) {
+    await robot.pick(signal);
+    await wait(BEAT_MS, signal);
+  },
+
+  /** Puts down what the robot carries. */
+  async drop(block, { robot, signal, wait }) {
+    await robot.drop(signal);
+    await wait(BEAT_MS, signal);
+  },
+
   wait: (block, { signal, wait }) => wait(block.value * 1000, signal),
 
   async repeat(block, context) {

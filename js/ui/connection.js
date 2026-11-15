@@ -4,7 +4,7 @@ import { describeHealth } from '../robot/console.js';
 import { MBot } from '../robot/mbot.js';
 import { colorById, noteById } from '../robot/palette.js';
 import { correctedSpinTime, measureQuarters, measureStep, spinsOf, spinTime, sweep, sweepUntilRepeat, whereInTurn } from '../robot/radar.js';
-import { DEFAULT_TUNING, saveTuning, TUNING_LIMITS } from '../robot/tuning.js';
+import { DEFAULT_TUNING, saveTuning, squareOf, TUNING_LIMITS } from '../robot/tuning.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort, sleep } from '../timing.js';
@@ -304,6 +304,12 @@ export class Connection {
     report(`${T.connection.turnsDone(this.#tuning.quarterTurnMs, this.#tuning.scanStepMs)} ${checked}`);
   }
 
+  /** Sets a tuning value from outside the dialog, to the nearest it may take, and returns what it became. */
+  tune(key, value) {
+    this.#fit(key, value);
+    return this.#tuning[key];
+  }
+
   /** Sets a tuning value to the nearest it may take. */
   #fit(key, value) {
     const { min, max, step } = TUNING_LIMITS[key];
@@ -318,7 +324,7 @@ export class Connection {
     // If the mBot went away half-way, part of the measurement came from the robot on screen.
     if (!this.#hub.connected || squares === null || squares < SHORTEST_STEP || squares > LONGEST_STEP) return report(T.connection.fitFailed);
     this.#fit('stepMs', this.#tuning.stepMs / squares);
-    report(T.connection.fitDone(Math.round(squares * this.#tuning.cellCm), this.#tuning.stepMs));
+    report(T.connection.fitDone(Math.round(squares * squareOf(this.#tuning).cm), this.#tuning.stepMs));
   }
 
   /** Runs one test move at a time; closing the dialog stops it. */

@@ -39,6 +39,7 @@ Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 | 🧩 | **Programar** | Tap blocks to build a program, then watch the robot run it on the mat. Moves, lights and light shows, notes and whole tunes, repeats, and the robot's eyes. |
 | 🕹️ | **Conduzir** | Four parts. **Conduzir**: drive with arrows and stop before bumping. **Luzes e sons**: colours, light shows, a piano and tunes. **Sozinho**: the robot follows the black line of the printed circuit, or maps the room. **Explorar**: it finds the way out of the room by itself. |
 | ⭐ | **Missões** | Eight gentle challenges with hints and stars. No timers, no failing. |
+| 🗺️ | **Mapas** | Two printed floor maps of six squares by four, 15 cm a square: a house and a fairy-tale kingdom. Twenty-one missions in three levels: go to a thing, pick it up with the «Apanhar» block, carry it somewhere and leave it with «Largar», keeping off the lake, the forest and the river. The robot on screen shows which square the real one should be on. |
 | 🎒 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | 📡 | **Comando** | The infrared remote that comes in the box, button by button. |
 | 🛠️ | **Pais** | For grown-ups: what the robot is made of, what the app can and cannot do with it, firmware and batteries, what the sensors read right now, and a command line. |
@@ -54,6 +55,7 @@ and resets the robot.
 | ![The Programar tab with a program of five blocks and the robot's trail on the mat](docs/screenshots/programar.png)<br>**Programar**: blocks, the program and the mat. | ![The Sozinho part of Conduzir after a radar turn, with rays from the robot to the boxes](docs/screenshots/conduzir.png)<br>**Conduzir**: four parts. Here the robot maps what is around it. |
 | ![The Explorar part of Conduzir: a map of a room with the robot's path along the walls and out through a door 85 cm wide](docs/screenshots/explorar.png)<br>**Explorar**: the robot finds the door by itself. | ![The labyrinth mission solved, with its star](docs/screenshots/missao.png)<br>**Missões**: the labyrinth, solved. |
 | ![The Escola tab with the Matemática exercises by level](docs/screenshots/escola.png)<br>**Escola**: exercises by subject and level. | ![A Português exercise: a short text, a question and three signs on the mat](docs/screenshots/exercicio.png)<br>An exercise: read, then take the robot to the answer. |
+| ![The Mapas tab: the kingdom map square by square, with the river, the lake and the forest marked](docs/screenshots/mapas.png)<br>**Mapas**: a printed map, square by square. | ![A mission on the kingdom map: the robot carries the potion and the book of spells along the bottom row](docs/screenshots/mapa-missao.png)<br>A map mission: the robot carries what it picked up. |
 | ![The Comando tab with a drawing of the infrared remote](docs/screenshots/comando.png)<br>**Comando**: the remote, button by button. | ![The Pais tab: what the sensors read, and a command line](docs/screenshots/pais.png)<br>**Pais**: live readings and a command line. |
 
 ## Try it
@@ -133,6 +135,41 @@ it, or with somebody walking by, the robot says the map may be off. It stays a
 coarse map: the cone is about 30° wide, and a smooth wall seen at a slant sends
 no echo back. Without a robot connected, the radar only draws what the robot on
 screen sees.
+
+</details>
+
+<details>
+<summary><b>Printed maps</b></summary>
+
+The Mapas tab is for floor maps printed with a grid, such as the ones that come
+with other toy robots. `js/maps.js` describes two of them, six squares by four:
+which thing is on which square, which things are too big to carry, and which
+squares are a lake, a forest or a river. The pictures on screen are emoji, not
+the maps' own artwork. The maps are drawn with their long side across the
+screen; the robot starts on the START square, facing up.
+
+A mission opens in Programar with the map in place of the mat. While a map is
+open a step is one of its squares, 15 cm: the step time follows from the one
+tuned for the mat (`squareOf` in `js/robot/tuning.js`), so one tuning serves
+both. The robot has no way to know where it is on the map: the robot on screen
+moves with it and shows the square it should be on, which is right as long as
+the steps and the turns are well tuned. The Mapas tab has its own tuning for
+that, which uses the printed squares as a ruler: send the robot three squares,
+say how many it really went, and the step time is corrected; then nudge the
+quarter turn until four of them bring the robot back in line with the grid.
+
+Two blocks only show on a map. «Apanhar» picks up what lies on the robot's
+square, and «Largar» puts down everything it carries. The real robot has no
+hand, so its lights blink: green when it took something, blue when it left
+something, red when there was nothing. Both go through `RobotHub.pick` and
+`drop`, the one place to ask a sensor later whether the robot was really given
+the thing. Going onto a lake, a forest or a river, or off the map, ends the run
+at once: nothing holds the real robot at the edge of a sheet of cardboard. The
+blocks that use the eyes are hidden on a map, because the real eyes would see
+whatever stands around it.
+
+A mission is data: its level, what to do, a hint, a `check` on where the things
+and the robot ended, and a `solution` the tests run.
 
 </details>
 
@@ -259,6 +296,7 @@ js/texts.js           interface text (PT-PT)
 js/tutorial.js        the tutorial's lessons, step by step
 js/missions.js        the missions and the star board
 js/school.js          the school exercises, by subject, year and level
+js/maps.js            the printed maps, square by square, and their missions
 js/jingles.js         short tunes for the buzzer (also the «Tocar a música» block), and their player
 js/light-shows.js     colour sequences for the two lights (also the «Espetáculo de luzes» block), the child's own show, and their player
 js/remote-guide.js    what each remote button does
@@ -306,6 +344,8 @@ the browser, in about twenty seconds. They cover:
 - the line follower, with the robot on screen going all the way round its
   circuit;
 - the explorer finding the door of each pretend room, also on a slippery floor;
+- the printed maps: a solution for every mission, the squares to keep off, the
+  edge of the map, picking up and putting down, steps of 15 cm;
 - tunes, light shows and the command line.
 
 ### On the real robot
