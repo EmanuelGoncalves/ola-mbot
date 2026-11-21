@@ -107,6 +107,7 @@ test('shortcuts: the keys of Programar only work on that tab', () => {
   equal(elsewhere.done, []);
   const there = shortcuts('programar');
   equal(there.keys.handle(press('ArrowUp')), true);
+  equal(there.keys.handle(press('ArrowUp', { shiftKey: true })), false, 'Shift and an arrow drive the robot:');
   equal(there.done, ['program ArrowUp']);
 });
 
@@ -137,7 +138,7 @@ test('shortcuts: ? opens and closes the list, which names every key; behind it t
     equal(done, []);
     const shown = [...keys.dialog.querySelectorAll('kbd')].map((cap) => cap.textContent);
     for (const { cap } of BLOCK_KEYS) ok(shown.includes(cap), `${cap} is not in the list`);
-    for (const cap of ['?', 'Esc', 'S', 'B', 'Enter', '⌫', 'I', '1 … 3']) ok(shown.includes(cap), `${cap} is not in the list`);
+    for (const cap of ['?', 'Esc', 'S', 'B', 'Enter', '⌫', 'I', '1 … 3', 'Shift']) ok(shown.includes(cap), `${cap} is not in the list`);
     ok(keys.dialog.textContent.includes('1 Aprender, 2 Programar, 3 Conduzir'), 'the tabs are not named');
     keys.handle(press('?'));
     ok(!keys.dialog.open, 'the list did not close');

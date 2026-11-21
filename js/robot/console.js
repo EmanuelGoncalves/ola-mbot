@@ -104,6 +104,28 @@ export const COMMANDS = [
     },
   },
   {
+    name: 'rgb',
+    usage: 'rgb <r> <g> <b>',
+    about: 'acende as luzes com vermelho, verde e azul de 0 a 255',
+    async run(words, { hub }) {
+      const rgb = words.map((word) => whole(word, 0, 255));
+      if (rgb.length !== 3 || rgb.includes(null)) return 'Escreva três números de 0 a 255. Exemplo: rgb 0 60 120';
+      await hub.setLights({ rgb, hex: `rgb(${rgb.join(' ')})` });
+      return `Luzes em ${rgb.join(', ')}.`;
+    },
+  },
+  {
+    name: 'tom',
+    usage: 'tom <hz> <ms>',
+    about: 'toca um som de 50 a 5000 Hz durante 10 a 2000 ms',
+    async run([hz, ms], { hub }) {
+      const [pitch, length] = [whole(hz, 50, 5000), whole(ms, 10, 2000)];
+      if (pitch === null || length === null) return 'Escreva a frequência (50 a 5000) e a duração (10 a 2000). Exemplo: tom 440 300';
+      await hub.playTone(pitch, length);
+      return `Toquei ${pitch} Hz durante ${length} ms.`;
+    },
+  },
+  {
     name: 'distancia',
     usage: 'distancia',
     about: 'mede a distância à frente dos olhos, em cm',
@@ -141,6 +163,18 @@ export const COMMANDS = [
       if (!hub.real) return NEEDS_ROBOT;
       const pressed = await hub.real.readButton();
       return pressed === null ? NO_ANSWER : pressed ? 'O botão está carregado.' : 'O botão está solto.';
+    },
+  },
+  {
+    name: 'ler',
+    usage: 'ler <aparelho> <porta>',
+    about: 'lê um sensor pelo número do aparelho, a porta e, se for preciso, a ranhura. Exemplo: ler 7 4 (sensor de som na porta 4)',
+    async run(words, { hub }) {
+      if (!hub.real) return NEEDS_ROBOT;
+      const numbers = words.map((word) => whole(word, 0, 255));
+      if (numbers.length < 1 || numbers.length > 3 || numbers.includes(null)) return 'Escreva o número do aparelho e a porta. Exemplo: ler 7 4';
+      const value = await hub.real.read(...numbers);
+      return value === null ? NO_ANSWER : typeof value === 'number' ? String(Math.round(value * 100) / 100) : value;
     },
   },
   {

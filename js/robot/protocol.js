@@ -69,6 +69,11 @@ export function buttonRequest(index) {
   return packet(index, Action.GET, Device.BUTTON, Port.BUTTON, 0);
 }
 
+/** Asks any sensor the firmware knows, by its device number and what follows it (a port, a slot). */
+export function sensorRequest(index, device, ...data) {
+  return packet(index, Action.GET, device, ...data);
+}
+
 /** Collects notification bytes and returns the complete replies found so far. */
 export class ReplyParser {
   #buffer = [];

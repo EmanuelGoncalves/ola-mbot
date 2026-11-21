@@ -54,7 +54,7 @@ function start() {
     tutorial.leave();
   };
   const programView = new ProgramView({ hub, simulator, tuning, board, tutorial, onPlayLesson: playLesson, onShowMissions: showMissions, onShowMore: showMore });
-  const driveView = new DriveView({ hub, simulator, tuning, onFreePlay: freePlay });
+  const driveView = new DriveView({ hub, simulator, tuning, onFreePlay: freePlay, arrowsWrite: () => currentTab === 'programar' });
   const views = {
     aprender: new LearnView({ tutorial, onPlay: playLesson, onShowMissions: showMissions }).element,
     programar: programView.element,
@@ -75,7 +75,8 @@ function start() {
   const connection = new Connection({ hub, tuning, onOpen: stopRobot });
   mapsView = new MapsView({ board, hub, tuning, tune: (key, value) => connection.tune(key, value), onPlay: playMission });
   views.mapas = mapsView.element;
-  views.pais = new ParentsView({ hub, tuning, link: connection.link }).element;
+  const parentsView = new ParentsView({ hub, tuning, link: connection.link });
+  views.pais = parentsView.element;
   /** The way out when the robot is doing too much at once: ends every activity and starts the robot afresh. */
   const stopAll = () => {
     stopRobot();
@@ -111,6 +112,7 @@ function start() {
     stopRobot();
     panels.forEach((panel, i) => (panel.hidden = i !== index));
     tabButtons.forEach((button, i) => button.setAttribute('aria-selected', String(i === index)));
+    if (tab.id === 'pais') parentsView.start(); // it stops by itself when the tab is left
     if (location.hash.slice(1) !== tab.id) location.hash = tab.id;
     window.scrollTo(0, 0);
   }

@@ -42,7 +42,7 @@ Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 | 🗺️ | **Mapas** | Two printed floor maps of six squares by four, 15 cm a square: a house and a fairy-tale kingdom. Twenty-one missions in three levels: go to a thing, pick it up with the «Apanhar» block, carry it somewhere and leave it with «Largar», keeping off the lake, the forest and the river. The robot on screen shows which square the real one should be on. |
 | 🎒 | **Escola** | Matemática and Português exercises for the 2.º ano, in three levels. The answer tells the robot what to do. Many draw new numbers each time and earn their star after three right answers. |
 | 📡 | **Comando** | The infrared remote that comes in the box, button by button. |
-| 🛠️ | **Pais** | For grown-ups: what the robot is made of, what the app can and cannot do with it, firmware and batteries, what the sensors read right now, and a command line. |
+| 🛠️ | **Pais** | For grown-ups: a panel with what every sensor reads, live, and a command line. What the robot is made of and what the app can and cannot do with it is folded away at the bottom. |
 
 A red **Parar tudo** button, always in the top bar, ends whatever is running
 and resets the robot.
@@ -51,8 +51,9 @@ With a keyboard, the ⌨️ button of the top bar (or the `?` key) lists the
 shortcuts. In Programar the arrow keys write the program: `↑ ↑ ↑ →` gives
 "Andar em frente, 3 passos" and "Virar à direita", letters add the other blocks,
 `Enter` starts and `Backspace` takes the last block away. The digits open the
-tabs, `Esc` stops everything, and in Conduzir the arrows drive while they are
-held. The keys and what they do are one table, `js/shortcuts.js`.
+tabs and `Esc` stops everything. On every other tab the arrows drive the robot
+while they are held; in Programar, `Shift` and an arrow do. The keys and what
+they do are one table, `js/shortcuts.js`.
 
 <p align="center"><img src="docs/screenshots/atalhos.png" alt="The list of keyboard shortcuts: keys for every tab, and the keys that add blocks in Programar" width="560"></p>
 
@@ -296,9 +297,12 @@ Packets follow the factory firmware's parser
 
 Bluetooth service `ffe1`; write to characteristic `ffe3`, notifications on `ffe2`.
 
-The **Pais** tab has a command line that sends these packets, by name (`andar
-2`, `luz azul`, `distancia`) or as raw bytes (`hex ff 55 02 00 04`), and can
-show every byte that goes to the robot and comes back.
+The board is an Arduino, but its serial port is not a text console: the
+factory firmware only understands these packets. The **Pais** tab has a command
+line that turns words into them (`andar 2`, `luz azul`, `rgb 0 60 120`, `tom
+440 300`, `distancia`), reads any sensor the firmware knows by device number
+and port (`ler 7 4` is a sound sensor on port 4), sends raw bytes (`hex ff 55
+02 00 04`), and can show every byte that goes to the robot and comes back.
 
 </details>
 
@@ -318,7 +322,7 @@ js/jingles.js         short tunes and sirens for the buzzer (also the «Tocar a 
 js/shortcuts.js       the keyboard shortcuts
 js/light-shows.js     colour sequences for the two lights (also the «Espetáculo de luzes» block), the child's own show, and their player
 js/remote-guide.js    what each remote button does
-js/parents-guide.js   the text of the Pais tab
+js/parents-guide.js   the text folded away at the bottom of the Pais tab
 js/program/           block catalogue, program model, interpreter
 js/robot/             protocol, Bluetooth link, real mBot, simulator, hub, radar, line follower,
                       explorer and its pretend rooms, and the command line
@@ -364,8 +368,8 @@ the browser, in about twenty seconds. They cover:
 - the explorer finding the door of each pretend room, also on a slippery floor;
 - the printed maps: a solution for every mission, the squares to keep off, the
   edge of the map, picking up and putting down, steps of 15 cm;
-- the keyboard shortcuts: the arrows writing a program, and when a key is not
-  a shortcut;
+- the keyboard shortcuts: the arrows writing a program, driving from every
+  tab, and when a key is not a shortcut;
 - tunes, light shows and the command line.
 
 ### On the real robot

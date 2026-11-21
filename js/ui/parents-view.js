@@ -1,19 +1,35 @@
 import { el } from '../dom.js';
 import { PARENTS_GUIDE } from '../parents-guide.js';
-import { COMMANDS, hex, runCommand } from '../robot/console.js';
+import { COMMANDS, describeHealth, hex, runCommand } from '../robot/console.js';
+import { OUT_OF_SIGHT_CM } from '../robot/mbot.js';
+import { squareOf } from '../robot/tuning.js';
 import { T } from '../texts.js';
+import { isAbort, sleep } from '../timing.js';
 
 const MOST_LINES = 200;
+/** How often the sensors are read while they are being watched. */
+const READ_EVERY_MS = 400;
+const NOTHING = '—';
+const SENSORS = ['distance', 'line', 'light', 'button', 'firmware', 'link'];
 
 /**
- * The "Pais" tab, for grown-ups: what the robot is, what the app can and cannot do with it,
- * what its sensors read right now, and a command line.
+ * The "Pais" tab, for grown-ups: what the sensors read, live, and a command line. What the robot
+ * is and what the app can do with it stays folded away at the bottom.
  */
 export class ParentsView {
   #hub;
   #tuning;
   #link;
-  #readings = el('dl', { class: 'readings' });
+  /** The value and the note of each sensor, by its id. */
+  #metrics = {};
+  #eyes = [el('span', { class: 'floor-eye' }), el('span', { class: 'floor-eye' })];
+  #status = el('p', { class: 'hint', 'aria-live': 'polite' });
+  #liveButton = el('button', { class: 'button', type: 'button', onClick: () => (this.#live ? this.stop() : this.start()) });
+  /** The watching of the sensors, while it is on. */
+  #live = null;
+  /** The firmware version, and the robot that gave it: asked once for each robot. */
+  #version = null;
+  #versionOf = null;
   #log = el('pre', { class: 'console-log', role: 'log', 'aria-label': T.parents.consoleLog, tabindex: '0' });
   #input = el('input', { class: 'console-input', type: 'text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': T.parents.consoleInput, placeholder: T.parents.consolePlaceholder });
   #monitor = el('input', { type: 'checkbox', id: 'console-monitor' });
@@ -29,20 +45,18 @@ export class ParentsView {
     this.element = el(
       'div',
       { class: 'parents-view' },
-      el('header', { class: 'view-intro' }, el('h2', { text: T.parents.title }), el('p', { text: T.parents.intro })),
+      el('header', { class: 'view-intro' }, el('h2', { text: T.parents.title })),
       el(
         'section',
         { class: 'panel' },
-        el('h3', { text: `📟 ${T.parents.readingsTitle}` }),
-        el('p', { class: 'hint', text: T.parents.readingsHint }),
-        el('div', { class: 'row' }, el('button', { class: 'button button-brand', type: 'button', onClick: () => this.#read() }, T.parents.read)),
-        this.#readings,
+        el('div', { class: 'panel-head' }, el('h3', { text: `📟 ${T.parents.sensorsTitle}` }), this.#liveButton),
+        el('dl', { class: 'metrics' }, SENSORS.map((id) => this.#metric(id))),
+        this.#status,
       ),
       el(
         'section',
         { class: 'panel' },
         el('h3', { text: `⌨️ ${T.parents.consoleTitle}` }),
-        el('p', { class: 'hint', text: T.parents.consoleHint }),
         this.#log,
         el(
           'form',
@@ -52,38 +66,93 @@ export class ParentsView {
         ),
         el('label', { class: 'tuning-check', for: 'console-monitor' }, this.#monitor, T.parents.monitor),
       ),
-      PARENTS_GUIDE.map((section) =>
-        el(
-          'section',
-          { class: 'panel' },
-          el('h3', { text: `${section.icon} ${section.title}` }),
-          section.paragraphs.map((text) => el('p', { text })),
-          section.list && el('ul', { class: 'steps' }, section.list.map((text) => el('li', { text }))),
+      el(
+        'details',
+        { class: 'fold parents-guide' },
+        el('summary', { text: `📖 ${T.parents.guide}` }),
+        PARENTS_GUIDE.map((section) =>
+          el(
+            'section',
+            {},
+            el('h3', { text: `${section.icon} ${section.title}` }),
+            section.paragraphs.map((text) => el('p', { text })),
+            section.list && el('ul', { class: 'steps' }, section.list.map((text) => el('li', { text }))),
+          ),
         ),
       ),
     );
+    this.#metrics.line.value.replaceChildren(...this.#eyes);
     this.#input.addEventListener('keydown', (event) => this.#recall(event));
+    // The sensors asked all the time would bury the bytes of a single order.
+    this.#monitor.addEventListener('change', () => this.#monitor.checked && this.stop());
     link.addEventListener('sent', (event) => this.#monitor.checked && this.#print(`→ ${hex(event.detail)}`));
     link.addEventListener('data', (event) => this.#monitor.checked && this.#print(`← ${hex(event.detail)}`));
     this.#print(T.parents.consoleWelcome(COMMANDS.length));
-    this.#showReadings([]);
+    this.#drawLive();
   }
 
-  /** Asks the robot for everything it can tell about itself, one question after the other. */
-  async #read() {
-    const hub = this.#hub;
-    const answer = (text) => runCommand(text, { hub, tuning: this.#tuning, health: () => this.#link.health });
-    const rows = [];
-    for (const [label, command] of T.parents.readings) {
-      rows.push([label, await answer(command)]);
-      this.#showReadings(rows);
+  /** Reads the sensors a few times a second, until `stop()` or until the tab is left. */
+  async start() {
+    if (this.#live) return;
+    const live = (this.#live = new AbortController());
+    this.#drawLive();
+    try {
+      while (!this.element.closest('[hidden]')) {
+        // A dialog may be tuning the robot: it needs the sensors to itself.
+        if (!document.hidden && !document.querySelector('dialog[open]')) await this.#read();
+        await sleep(READ_EVERY_MS, live.signal);
+      }
+    } catch (error) {
+      if (!isAbort(error)) throw error;
+    } finally {
+      this.#live = null;
+      this.#drawLive();
     }
   }
 
-  #showReadings(rows) {
-    this.#readings.replaceChildren(
-      ...(rows.length > 0 ? rows.flatMap(([label, value]) => [el('dt', { text: label }), el('dd', { text: value })]) : [el('dd', { class: 'hint', text: T.parents.noReadings })]),
-    );
+  stop() {
+    this.#live?.abort();
+  }
+
+  #metric(id) {
+    const { name, note } = T.parents.sensors[id];
+    const value = el('dd', { class: 'metric-value', text: NOTHING });
+    this.#metrics[id] = { value, note: el('dd', { class: 'metric-note', text: note }) };
+    return el('div', { class: 'metric' }, el('dt', { text: name }), value, this.#metrics[id].note);
+  }
+
+  #drawLive() {
+    this.#liveButton.textContent = this.#live ? `⏸ ${T.parents.pause}` : `▶ ${T.parents.resume}`;
+    this.#status.textContent = !this.#live ? T.parents.paused : this.#hub.real ? T.parents.fromRobot : T.parents.fromScreen;
+  }
+
+  /** Asks every sensor once: the real robot's when one is connected, else what the robot on screen knows. */
+  async #read() {
+    const real = this.#hub.real;
+    const ask = (question) => (real ? question(real).catch(() => null) : null);
+    const started = performance.now();
+    const range = real ? null : await this.#hub.range();
+    const cm = real ? await ask((robot) => robot.readDistance()) : range === null ? 0 : range * squareOf(this.#tuning).cm;
+    const answeredIn = Math.round(performance.now() - started);
+    const seen = await this.#hub.readLine();
+    const light = await ask((robot) => robot.readLight());
+    const pressed = await ask((robot) => robot.readButton());
+    if (real !== this.#versionOf) {
+      this.#version = await ask((robot) => robot.readVersion());
+      if (this.#version || !real) this.#versionOf = real;
+    }
+    const show = (id, text) => (this.#metrics[id].value.textContent = text ?? NOTHING);
+    show('distance', cm === null ? null : cm > 0 && cm < OUT_OF_SIGHT_CM ? T.parents.cm(cm) : T.parents.nothingInSight);
+    // The sensors answer 0 with both over something dark, 1 with only the left one, 2 with only the right one, 3 with neither.
+    this.#eyes[0].classList.toggle('is-dark', seen === 0 || seen === 1);
+    this.#eyes[1].classList.toggle('is-dark', seen === 0 || seen === 2);
+    this.#metrics.line.note.textContent = T.parents.lineSeen[seen] ?? T.parents.sensors.line.note;
+    show('light', light === null ? null : String(Math.round(light)));
+    show('button', pressed === null ? null : pressed ? T.parents.pressed : T.parents.released);
+    show('firmware', this.#version);
+    show('link', real ? T.parents.answeredIn(answeredIn) : null);
+    this.#metrics.link.note.textContent = real ? describeHealth(this.#link.health) : T.parents.sensors.link.note;
+    this.#drawLive();
   }
 
   async #submit(event) {

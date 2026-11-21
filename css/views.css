@@ -360,10 +360,18 @@
   color: var(--ink-soft);
 }
 
-/* Pais: panels of text for grown-ups, two side by side where there is room */
-.parents-view .panel p,
-.parents-view .panel li {
+/* Pais: the sensors and the command line, side by side where there is room */
+.parents-guide p,
+.parents-guide li {
   max-width: 70ch;
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 @media (min-width: 900px) {
@@ -372,30 +380,62 @@
     align-items: start;
   }
 
-  .parents-view > .view-intro {
+  .parents-view > .view-intro,
+  .parents-view > .fold {
     grid-column: 1 / -1;
   }
 }
 
-/* What the robot reads right now: a name and its value on each line */
-.readings {
+/* What the sensors read right now: one tile each, with a name, a large value and a note */
+.metrics {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
 }
 
-.readings dt {
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+}
+
+.metric dt {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
   font-weight: 800;
 }
 
-.readings dd {
+.metric dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
+.metric-value {
+  display: flex;
+  gap: 6px;
+  min-height: 2rem;
+  font: 700 1.5rem/1.3 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-value .floor-eye {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.metric-note {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
 /* The command line */
 .console-log {
-  height: 220px;
+  height: 300px;
   margin: 0;
   padding: 10px 12px;
   overflow: auto;
@@ -739,7 +779,7 @@
 
 .shortcut {
   display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr);
+  grid-template-columns: 9.5rem minmax(0, 1fr);
   align-items: baseline;
   gap: 4px 12px;
   padding: 4px 0;

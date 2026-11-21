@@ -81,6 +81,38 @@ test('ui: a light show goes on between the parts of Conduzir, and ends with expl
   equal(simulator.lights, null);
 });
 
+test('ui: the arrow keys drive from every tab; where they write a program, with Shift', async () => {
+  const { tuning, simulator, hub } = parts();
+  let writing = false;
+  const drive = new DriveView({ hub, simulator, tuning, onFreePlay: nothing, arrowsWrite: () => writing });
+  const tab = document.createElement('div');
+  tab.hidden = true; // another tab is showing
+  tab.append(drive.element);
+  document.body.append(tab);
+  const key = (type, name, more = {}) => document.dispatchEvent(new KeyboardEvent(type, { key: name, ...more }));
+  /** Holds an arrow for a moment and tells whether the robot on screen moved. */
+  const moves = async (more) => {
+    const before = { ...simulator.pose };
+    key('keydown', 'ArrowUp', more);
+    await tick(80);
+    key('keyup', 'ArrowUp');
+    return simulator.pose.x !== before.x || simulator.pose.y !== before.y;
+  };
+  try {
+    equal(await moves(), true, 'on another tab:');
+    equal(await moves({ metaKey: true }), false, 'with ⌘, which belongs to the browser:');
+    writing = true;
+    equal(await moves(), false, 'where the arrows write a program:');
+    equal(await moves({ shiftKey: true }), true, 'there, with Shift:');
+    const before = { ...simulator.pose };
+    await tick(80);
+    equal(simulator.pose, before, 'the arrow let go, the robot stands still:');
+  } finally {
+    drive.stop();
+    tab.remove();
+  }
+});
+
 test('ui: the Escola tab lists every exercise of the chosen subject', () => {
   const { board } = parts();
   const view = new SchoolView({ board, onPlay: nothing }).element;
@@ -91,13 +123,21 @@ test('ui: the Escola tab lists every exercise of the chosen subject', () => {
   buttonNamed(view, SUBJECTS[0].name).click(); // the choice is remembered: leave it on the first
 });
 
-test('ui: the Pais tab reads the robot and answers the command line', async () => {
+test('ui: the Pais tab shows the sensors live and answers the command line', async () => {
   const { tuning, hub } = parts();
-  const view = new ParentsView({ hub, tuning, link: new BluetoothLink({ bluetooth: null }) }).element;
-  buttonNamed(view, 'Ler tudo').click();
-  await tick(20);
-  equal(view.querySelectorAll('.readings dt').length, 6);
-  ok(view.querySelector('.readings dd').textContent.includes('cm'));
+  const parents = new ParentsView({ hub, tuning, link: new BluetoothLink({ bluetooth: null }) });
+  const view = parents.element;
+  equal([...view.children].map((child) => child.tagName), ['HEADER', 'SECTION', 'SECTION', 'DETAILS'], 'two panels, and the reading folded away:');
+  const values = () => [...view.querySelectorAll('.metric-value')].map((value) => value.textContent);
+  equal(values(), Array(6).fill('—').with(1, ''), 'before the first reading:');
+  buttonNamed(view, 'Ler ao vivo').click();
+  await tick(30);
+  ok(values()[0].endsWith(' cm'), `the robot on screen sees the edge of the mat: ${values()[0]}`);
+  ok(view.querySelector('.metric-note').textContent.includes('porta 3'));
+  ok(view.textContent.includes('valores do robô do ecrã'));
+  buttonNamed(view, 'Pausar').click();
+  await tick(10);
+  ok(buttonNamed(view, 'Ler ao vivo') && view.textContent.includes('Em pausa.'), 'the reading did not pause');
   view.querySelector('.console-input').value = 'luz azul';
   view.querySelector('.console-form').dispatchEvent(new Event('submit', { cancelable: true }));
   await tick(120);

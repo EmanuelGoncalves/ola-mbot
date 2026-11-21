@@ -1,5 +1,5 @@
 import { sleep } from '../timing.js';
-import { buttonRequest, distanceRequest, lightRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, tonePacket, versionRequest, wheelsPacket } from './protocol.js';
+import { buttonRequest, distanceRequest, lightRequest, lightsPacket, lineRequest, ReplyParser, resetPacket, sensorRequest, tonePacket, versionRequest, wheelsPacket } from './protocol.js';
 import { driveTime, squareOf, turnTime } from './tuning.js';
 
 const REPLY_TIMEOUT_MS = 400;
@@ -214,6 +214,11 @@ export class MBot {
   async readButton() {
     const pressed = await this.#ask(buttonRequest);
     return pressed === null ? null : pressed === 1;
+  }
+
+  /** Asks any sensor by its device number and port, for the command line; null if no answer. */
+  read(device, ...data) {
+    return this.#ask((index) => sensorRequest(index, device, ...data));
   }
 
   /** Sends bytes just as they are, for the command line. */

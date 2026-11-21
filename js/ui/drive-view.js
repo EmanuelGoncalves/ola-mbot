@@ -54,6 +54,7 @@ export class DriveView {
   #simulator;
   #tuning;
   #onFreePlay;
+  #arrowsWrite;
   #speed = SPEEDS[1].value;
   /** Arrows being pressed, newest last: the robot follows the newest. */
   #held = [];
@@ -90,12 +91,16 @@ export class DriveView {
   #modes;
   #mode = 'drive';
 
-  /** `onFreePlay` closes any lesson or mission, so the mat is the child's own. */
-  constructor({ hub, simulator, tuning, onFreePlay }) {
+  /**
+   * `onFreePlay` closes any lesson or mission, so the mat is the child's own. `arrowsWrite()` is
+   * true where the arrow keys already do something else: there, driving needs Shift as well.
+   */
+  constructor({ hub, simulator, tuning, onFreePlay, arrowsWrite = () => false }) {
     this.#hub = hub;
     this.#simulator = simulator;
     this.#tuning = tuning;
     this.#onFreePlay = onFreePlay;
+    this.#arrowsWrite = arrowsWrite;
     const stage = new StageView(simulator, T.tabs.drive);
     stage.editable = false;
     const portrait = createRobotPortrait();
@@ -571,12 +576,12 @@ export class DriveView {
     if (on) this.#watch();
   }
 
-  /** Looks ahead a few times a second while the eyes are on and this tab is showing. */
+  /** Looks ahead a few times a second while the eyes are on and this tab is showing or an arrow is held. */
   async #watch() {
     if (this.#eyesWatching) return;
     this.#eyesWatching = true;
     while (this.#eyesOn) {
-      const showing = !document.hidden && !this.element.closest('[hidden]');
+      const showing = !document.hidden && (!this.element.closest('[hidden]') || this.#held.length > 0);
       if (showing && !this.#scan && !this.#line && !this.#explore.exploring) this.#seen(await this.#hub.look());
       await sleep(EYES_POLL_MS);
     }
@@ -594,12 +599,15 @@ export class DriveView {
     if (this.#held.length > 0) this.#applyDrive(); // with no arrow held, the robot is not ours to stop
   }
 
-  /** Arrow keys drive too, for computers with a keyboard. */
+  /** Arrow keys drive too, on every tab; where the arrows write a program, with Shift held. */
   #onKey(event, pressed) {
     const direction = DIRECTIONS.find((item) => item.key === event.key);
-    const elsewhere = this.element.closest('[hidden]') || this.#mode === EXPLORE || event.target.closest?.('input, dialog');
-    if (!direction || event.repeat || elsewhere) return;
+    if (!direction || event.repeat) return;
+    if (!pressed) return this.#hold(direction, false); // an arrow let go is always let go
+    const typing = event.target.closest?.('input, select, textarea, [contenteditable], [role="log"]');
+    const taken = event.ctrlKey || event.metaKey || event.altKey || (this.#arrowsWrite() && !event.shiftKey);
+    if (typing || taken || this.#explore.exploring || document.querySelector('dialog[open]')) return;
     event.preventDefault();
-    this.#hold(direction, pressed);
+    this.#hold(direction, true);
   }
 }

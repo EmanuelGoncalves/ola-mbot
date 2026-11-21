@@ -22,7 +22,7 @@ export class Shortcuts {
       { class: 'dialog shortcuts', 'aria-labelledby': 'shortcuts-title' },
       el('h2', { id: 'shortcuts-title', text: T.shortcuts.title }),
       el('p', { class: 'hint', text: T.shortcuts.intro }),
-      el('div', { class: 'dialog-body' }, this.#everywhere(), this.#programming(), this.#driving()),
+      el('div', { class: 'dialog-body' }, this.#everywhere(), this.#driving(), this.#programming()),
       el('button', { class: 'button', type: 'button', onClick: () => this.dialog.close() }, T.shortcuts.close),
     );
     this.dialog.addEventListener('click', (event) => {
@@ -61,6 +61,7 @@ export class Shortcuts {
     }
     // Enter on a button that has the keyboard presses that button, as everywhere.
     if (pressed === PROGRAM_KEYS.run && event.target.closest?.('button, a, summary')) return false;
+    if (event.shiftKey && pressed.startsWith('Arrow')) return false; // Shift and an arrow drive the robot
     return currentTab() === 'programar' && programKey(event);
   }
 
@@ -92,6 +93,9 @@ export class Shortcuts {
   }
 
   #driving() {
-    return this.#group(T.shortcuts.drive, [[['↑', '↓', '←', '→'], T.shortcuts.driveArrows]]);
+    return this.#group(T.shortcuts.drive, [
+      [['↑ ↓ ← →'], T.shortcuts.driveArrows],
+      [['Shift', '↑ ↓ ← →'], T.shortcuts.driveShift],
+    ]);
   }
 }
