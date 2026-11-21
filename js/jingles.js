@@ -9,7 +9,8 @@ const SOUNDING = 0.85;
  * Short tunes for the buzzer. They use only the eight notes of the piano, so a
  * child can copy them with «Tocar a nota» blocks. Each note is [note id, beats].
  * Those marked "original" were written for this app; the others are the opening
- * lines of traditional tunes, old enough to be free for everyone to play.
+ * lines of traditional tunes, old enough to be free for everyone to play. A siren
+ * is not a tune at all: two notes, over and over.
  * They are also the choices of the «Tocar a música» block.
  */
 export const JINGLES = [
@@ -247,6 +248,80 @@ export const JINGLES = [
     notes: [
       ['fa', 1.5], ['sol', 0.5], ['la', 1], ['la', 1], ['sol', 0.5], ['fa', 0.5], ['sol', 0.5], ['la', 0.5], ['fa', 1], ['do', 1],
       ['fa', 1.5], ['sol', 0.5], ['la', 1], ['la', 1], ['sol', 0.5], ['fa', 0.5], ['sol', 0.5], ['la', 0.5], ['fa', 2],
+    ],
+  },
+  {
+    id: 'jingle-bells-chorus',
+    icon: '🛷',
+    name: 'Jingle Bells (o refrão todo)',
+    notes: [
+      ['mi', 1], ['mi', 1], ['mi', 2], ['mi', 1], ['mi', 1], ['mi', 2],
+      ['mi', 1], ['sol', 1], ['do', 1.5], ['re', 0.5], ['mi', 4],
+      ['fa', 1], ['fa', 1], ['fa', 1.5], ['fa', 0.5], ['fa', 1], ['mi', 1], ['mi', 1], ['mi', 0.5], ['mi', 0.5],
+      ['mi', 1], ['re', 1], ['re', 1], ['mi', 1], ['re', 2], ['sol', 2],
+    ],
+  },
+  {
+    id: 'merry-christmas',
+    icon: '🎄',
+    name: 'We Wish You a Merry Christmas',
+    notes: [
+      ['do', 1], ['fa', 1], ['fa', 0.5], ['sol', 0.5], ['fa', 0.5], ['mi', 0.5], ['re', 1], ['re', 1], ['re', 1],
+      ['sol', 1], ['sol', 0.5], ['la', 0.5], ['sol', 0.5], ['fa', 0.5], ['mi', 1], ['do', 1], ['do', 0.5], ['do', 0.5],
+      ['re', 1], ['sol', 1], ['mi', 1], ['fa', 3],
+    ],
+  },
+  {
+    id: 'joy-to-the-world',
+    icon: '🌟',
+    name: 'Joy to the World',
+    notes: [
+      ['do2', 2], ['si', 1.5], ['la', 0.5], ['sol', 3], ['fa', 1], ['mi', 2], ['re', 2], ['do', 3],
+      ['sol', 1], ['la', 3], ['la', 1], ['si', 3], ['si', 1], ['do2', 4],
+    ],
+  },
+  {
+    id: 'saint-nicholas',
+    icon: '🎅',
+    name: 'São Nicolau',
+    notes: [
+      ['la', 1], ['la', 1], ['la', 1], ['la', 1], ['sol', 1], ['sol', 1], ['sol', 2],
+      ['fa', 1], ['fa', 1], ['fa', 1], ['fa', 1], ['la', 4],
+      ['re', 1], ['re', 1], ['re', 1], ['re', 1], ['do', 1], ['do', 1], ['fa', 2],
+      ['sol', 1], ['fa', 1], ['sol', 1], ['la', 1], ['sol', 4],
+    ],
+  },
+  {
+    id: 'christmas-bells', // original
+    icon: '🔔',
+    name: 'Sinos de Natal',
+    notes: [
+      ['do2', 1], ['la', 1], ['sol', 1], ['mi', 1], ['do2', 1], ['la', 1], ['sol', 2],
+      ['fa', 0.5], ['sol', 0.5], ['la', 1], ['sol', 0.5], ['la', 0.5], ['si', 1],
+      ['do2', 1], ['sol', 1], ['mi', 1], ['sol', 1], ['do2', 4],
+    ],
+  },
+  {
+    id: 'police-siren',
+    icon: '🚓',
+    name: 'Sirene da polícia',
+    notes: [['la', 1.5], ['mi', 1.5], ['la', 1.5], ['mi', 1.5], ['la', 1.5], ['mi', 1.5], ['la', 1.5], ['mi', 1.5]],
+  },
+  {
+    id: 'ambulance-siren',
+    icon: '🚑',
+    name: 'Sirene da ambulância',
+    notes: [['do2', 0.75], ['sol', 0.75], ['do2', 0.75], ['sol', 0.75], ['do2', 0.75], ['sol', 0.75], ['do2', 0.75], ['sol', 0.75], ['do2', 0.75], ['sol', 0.75], ['do2', 0.75], ['sol', 0.75]],
+  },
+  {
+    id: 'fire-engine',
+    icon: '🚒',
+    name: 'Carro dos bombeiros',
+    notes: [
+      ['do', 0.5], ['re', 0.5], ['mi', 0.5], ['fa', 0.5], ['sol', 0.5], ['la', 0.5], ['si', 0.5], ['do2', 1.5],
+      ['si', 0.5], ['la', 0.5], ['sol', 0.5], ['fa', 0.5], ['mi', 0.5], ['re', 0.5], ['do', 1.5],
+      ['do', 0.5], ['re', 0.5], ['mi', 0.5], ['fa', 0.5], ['sol', 0.5], ['la', 0.5], ['si', 0.5], ['do2', 1.5],
+      ['si', 0.5], ['la', 0.5], ['sol', 0.5], ['fa', 0.5], ['mi', 0.5], ['re', 0.5], ['do', 1.5],
     ],
   },
 ];

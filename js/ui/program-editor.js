@@ -76,6 +76,33 @@ export class ProgramEditor extends EventTarget {
     this.element.querySelector('.cursor')?.scrollIntoView({ block: 'nearest' });
   }
 
+  /**
+   * For the keyboard: a key pressed again makes the block before the cursor one larger (one
+   * more step, half a turn instead of a quarter) when it is of this `type` and can take more;
+   * otherwise a new block is added.
+   */
+  addOrGrow(type) {
+    const before = this.#beforeCursor();
+    const options = BLOCKS[type].options ?? [];
+    const larger = before?.type === type && typeof before.value === 'number' && !before.body ? options[options.findIndex((option) => option.value === before.value) + 1] : null;
+    if (larger) this.#program.setValue(before.id, larger.value);
+    else this.add(type);
+  }
+
+  /** Takes away the block before the cursor. Returns false when there is none. */
+  removeLast() {
+    const before = this.#beforeCursor();
+    if (!before) return false;
+    this.#selectedId = null;
+    this.#cursor.index -= 1;
+    this.#program.remove(before.id);
+    return true;
+  }
+
+  #beforeCursor() {
+    return this.#program.listOf(this.#cursor.parentId)?.[this.#cursor.index - 1] ?? null;
+  }
+
   moveCursorToEnd() {
     this.#selectedId = null;
     this.#cursor = { parentId: null, index: this.#program.blocks.length };

@@ -70,6 +70,25 @@ export const T = {
     progress: (stars, total) => `Tens ${stars} de ${total} estrelas`,
   },
 
+  shortcuts: {
+    title: 'Atalhos do teclado',
+    intro: 'Com um teclado, o robô programa-se e conduz-se sem tocar no ecrã. Carrega em ? para ver esta lista em qualquer altura.',
+    close: 'Fechar',
+    everywhere: 'Em todo o lado',
+    help: 'Mostrar ou esconder esta lista.',
+    tabs: (list) => `Mudar de separador: ${list}.`,
+    stop: 'Parar tudo o que o robô está a fazer.',
+    sound: 'Ligar ou desligar o som.',
+    connect: 'Abrir «Ligar ao robô».',
+    program: 'Em Programar (também nas missões, nos mapas e na escola)',
+    onMap: 'Só nos mapas.',
+    remove: 'Tirar o último bloco.',
+    run: 'Começar o programa.',
+    home: 'Pôr o robô do ecrã no início.',
+    drive: 'Em Conduzir',
+    driveArrows: 'Conduzir o robô enquanto carregas na seta.',
+  },
+
   maps: {
     title: 'Mapas',
     intro:

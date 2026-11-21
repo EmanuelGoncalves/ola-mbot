@@ -4,6 +4,7 @@ import { runProgram } from '../program/interpreter.js';
 import { Program } from '../program/program.js';
 import { Mishap } from '../robot/simulator.js';
 import { squareOf } from '../robot/tuning.js';
+import { BLOCK_KEYS, keyOf, PROGRAM_KEYS } from '../shortcuts.js';
 import { load, save } from '../storage.js';
 import { T } from '../texts.js';
 import { isAbort } from '../timing.js';
@@ -150,6 +151,28 @@ export class ProgramView {
 
   stop() {
     this.#abort?.abort();
+  }
+
+  /**
+   * The keyboard: arrows and letters add blocks, Enter starts the program, Backspace takes the
+   * last block away and I puts the robot back at the start. Returns true when the key was used.
+   */
+  onKey(event) {
+    const key = keyOf(event);
+    if (key === PROGRAM_KEYS.run) {
+      if (!this.running) this.run();
+      return true;
+    }
+    if (this.running) return false;
+    if (PROGRAM_KEYS.remove.includes(key)) return this.#editor.removeLast();
+    if (key === PROGRAM_KEYS.home) {
+      this.#simulator.reset();
+      return true;
+    }
+    const found = BLOCK_KEYS.find((item) => item.key === key);
+    if (!found || (found.onMap && !this.#activity?.map)) return false;
+    this.#editor.addOrGrow(found.block);
+    return true;
   }
 
   /** The lesson or mission being played, or null in free play. */

@@ -108,7 +108,7 @@ test('ui: the Pais tab reads the robot and answers the command line', async () =
 const SOURCES = [
   'main.js',
   ...['celebrate', 'coach', 'connection', 'drive-view', 'explore-view', 'layout', 'learn-view', 'maps-view', 'missions-view', 'parents-view', 'program-editor'].map((name) => `ui/${name}.js`),
-  ...['program-view', 'remote-view', 'robot-figure', 'round-dots', 'school-view', 'show-editor', 'stage-view'].map((name) => `ui/${name}.js`),
+  ...['program-view', 'remote-view', 'robot-figure', 'round-dots', 'school-view', 'shortcuts-view', 'show-editor', 'stage-view'].map((name) => `ui/${name}.js`),
 ];
 
 test('ui: every interface text that is used exists', async () => {

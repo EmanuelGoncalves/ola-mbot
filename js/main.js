@@ -18,6 +18,7 @@ import { ProgramView } from './ui/program-view.js';
 import { RemoteView } from './ui/remote-view.js';
 import { createRobotPortrait } from './ui/robot-figure.js';
 import { SchoolView } from './ui/school-view.js';
+import { Shortcuts } from './ui/shortcuts-view.js';
 
 /** How long the stop button says that everything has stopped. */
 const STOPPED_NOTE_MS = 1200;
@@ -132,19 +133,43 @@ function start() {
     showTab('programar');
   }
 
+  const stopButton = stopAllButton(stopAll);
+  const soundButton = soundToggle(beeper);
+  const shortcuts = new Shortcuts({
+    tabs: TABS,
+    actions: {
+      showTab,
+      currentTab: () => currentTab,
+      stopAll: () => stopButton.click(),
+      toggleSound: () => soundButton.click(),
+      connect: () => connection.button.click(),
+      programKey: (event) => programView.onKey(event),
+    },
+  });
+
   document.getElementById('app').append(
     el(
       'header',
       { class: 'top-bar' },
       el('div', { class: 'brand' }, createRobotPortrait().element, el('h1', { text: T.appName })),
       el('nav', { class: 'tabs', role: 'tablist' }, tabButtons),
-      stopAllButton(stopAll),
-      soundToggle(beeper),
+      stopButton,
+      soundButton,
+      shortcuts.button,
       connection.button,
     ),
     ...panels,
     connection.dialog,
+    shortcuts.dialog,
   );
+
+  document.addEventListener('keydown', (event) => {
+    if (shortcuts.handle(event)) event.preventDefault();
+  });
+  // A button tapped with a finger or the mouse does not keep the keyboard: Enter is then free to start the program.
+  document.addEventListener('click', (event) => {
+    if (event.detail > 0) event.target.closest?.('button')?.blur();
+  });
 
   // Browsers keep sound off until the first tap or key press.
   for (const gesture of ['pointerdown', 'keydown']) document.addEventListener(gesture, () => beeper.unlock());

@@ -47,6 +47,15 @@ Bluetooth, to the real mBot too. Without a robot the app is fully usable.
 A red **Parar tudo** button, always in the top bar, ends whatever is running
 and resets the robot.
 
+With a keyboard, the ⌨️ button of the top bar (or the `?` key) lists the
+shortcuts. In Programar the arrow keys write the program: `↑ ↑ ↑ →` gives
+"Andar em frente, 3 passos" and "Virar à direita", letters add the other blocks,
+`Enter` starts and `Backspace` takes the last block away. The digits open the
+tabs, `Esc` stops everything, and in Conduzir the arrows drive while they are
+held. The keys and what they do are one table, `js/shortcuts.js`.
+
+<p align="center"><img src="docs/screenshots/atalhos.png" alt="The list of keyboard shortcuts: keys for every tab, and the keys that add blocks in Programar" width="560"></p>
+
 ## Screenshots
 
 | | |
@@ -305,7 +314,8 @@ js/tutorial.js        the tutorial's lessons, step by step
 js/missions.js        the missions and the star board
 js/school.js          the school exercises, by subject, year and level
 js/maps.js            the printed maps, square by square, and their missions
-js/jingles.js         short tunes for the buzzer (also the «Tocar a música» block), and their player
+js/jingles.js         short tunes and sirens for the buzzer (also the «Tocar a música» block), and their player
+js/shortcuts.js       the keyboard shortcuts
 js/light-shows.js     colour sequences for the two lights (also the «Espetáculo de luzes» block), the child's own show, and their player
 js/remote-guide.js    what each remote button does
 js/parents-guide.js   the text of the Pais tab
@@ -354,6 +364,8 @@ the browser, in about twenty seconds. They cover:
 - the explorer finding the door of each pretend room, also on a slippery floor;
 - the printed maps: a solution for every mission, the squares to keep off, the
   edge of the map, picking up and putting down, steps of 15 cm;
+- the keyboard shortcuts: the arrows writing a program, and when a key is not
+  a shortcut;
 - tunes, light shows and the command line.
 
 ### On the real robot
